@@ -21,8 +21,8 @@ public interface AccountService {
 	public Mono<Void> delete(Account account);
 	
 	public Flux<Account> findByCustomerId(String id);
-	
 
+	public Mono<Account> updateAccount(Account updateAccount, String id);
 	
 	/*
 	@Autowired

@@ -78,17 +78,22 @@ public class AccountController {
 			c.setDateOpen(account.getDateOpen());
 			
 			return accountService.save(c);
-		}).map(c -> ResponseEntity.created(URI.create("/transaction/".concat(c.getAccountNumber())))
+		    }).map(c -> ResponseEntity.created(URI.create("/transaction/".concat(c.getAccountNumber())))
 				.contentType(MediaType.APPLICATION_JSON)
 				.body(c))
 				.defaultIfEmpty(ResponseEntity.notFound().build());
-				
+
 	}
 	
 	@GetMapping("/customer/{id}")
 	public Flux<Account> getAccountByCustomerId(@PathVariable String id){
 		return accountService.findByCustomerId(id);
 		
+	}
+
+	@PutMapping("/update/{id}")
+		public Mono<Account> updateAccount (@RequestBody Account account,@PathVariable String id){
+		return accountService.updateAccount(account,id);
 	}
 	
 	/*

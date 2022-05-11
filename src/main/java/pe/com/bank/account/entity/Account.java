@@ -16,7 +16,7 @@ public class Account {
 	@Id
 	private String id;
 	private String accountNumber;
-	private double amount;
+	private Double amount;
 	private String dateOpen;
 	private String amounttype;	
 	private String productId;
