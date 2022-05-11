@@ -27,14 +27,25 @@ public class AccountServiceImpl implements AccountService {
         return accountRepository.findById(id);
     }
 
-    public Mono<Account> save(Account account) {
+	public Mono<Account> save(Account account) {
+		
+		return customerRestClient.getCustomer(account.getCustomerId()).flatMap(customer -> {
+			return (customer.getCustomerType().equals("Personal"))?
+				
+				 accountRepository.countByCustomerIdAndProductId(account.getCustomerId(),
+						account.getProductId()).flatMap(count -> {
+							return count.longValue() > 0 ?  Mono.empty():accountRepository.save(account);
+						})			
+				 
+				: (account.getProductId().equals(accountConstant.PRODUCT_SAVING_ACCOUNT_ID) ||
+						account.getProductId().equals(accountConstant.PRODUCT_FIXEDTERM_ACCOUNT_ID))?Mono.empty():
+							accountRepository.save(account);
+	 
+			
+			
+		});
+		
 
-        return accountRepository.countByCustomerIdAndProductId(account.getCustomerId(),
-                account.getProductId()).flatMap(count -> {
-            System.out.println("count: " + count.longValue());
-            return count.longValue() > 0 ? Mono.just(new Account()) : accountRepository.save(account);
-        });
-    }
 
 
     public Mono<Void> delete(Account account) {
