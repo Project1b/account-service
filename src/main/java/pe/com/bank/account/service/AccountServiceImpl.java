@@ -5,8 +5,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import lombok.AllArgsConstructor;
+import pe.com.bank.account.client.CustomerRestClient;
 import pe.com.bank.account.entity.Account;
 import pe.com.bank.account.repository.AccountRepository;
+import pe.com.bank.account.util.AccountConstant;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -14,6 +16,8 @@ import reactor.core.publisher.Mono;
 @Service
 public class AccountServiceImpl implements AccountService {
 
+	AccountConstant accountConstant;
+	CustomerRestClient customerRestClient;
     AccountRepository accountRepository;
     private static final Logger log = LoggerFactory.getLogger(AccountServiceImpl.class);
 
@@ -37,8 +41,8 @@ public class AccountServiceImpl implements AccountService {
 							return count.longValue() > 0 ?  Mono.empty():accountRepository.save(account);
 						})			
 				 
-				: (account.getProductId().equals(accountConstant.PRODUCT_SAVING_ACCOUNT_ID) ||
-						account.getProductId().equals(accountConstant.PRODUCT_FIXEDTERM_ACCOUNT_ID))?Mono.empty():
+				: (account.getProductId().equals(accountConstant.PRODUCT_SAVINGS_ACCOUNT_ID) ||
+						account.getProductId().equals(accountConstant.PRODUCT_FIXED_TERM_ACCOUNT_ID))?Mono.empty():
 							accountRepository.save(account);
 	 
 			
