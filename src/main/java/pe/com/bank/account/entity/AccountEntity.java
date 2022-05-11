@@ -1,5 +1,7 @@
 package pe.com.bank.account.entity;
 
+import java.util.Date;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -11,13 +13,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Document(collection="account")
-public class Account {
+public class AccountEntity {
 
 	@Id
 	private String id;
 	private String accountNumber;
 	private Double amount;
-	private String dateOpen;
+	private Date dateOpen;
 	private String amounttype;	
 	private String productId;
 	private String customerId;

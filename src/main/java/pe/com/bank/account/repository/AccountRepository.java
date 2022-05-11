@@ -5,16 +5,17 @@ import org.springframework.stereotype.Repository;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import pe.com.bank.account.entity.Account;
+import pe.com.bank.account.entity.AccountEntity;
 
 
 @Repository
-public interface AccountRepository extends ReactiveMongoRepository<Account,String>{
+public interface AccountRepository extends ReactiveMongoRepository<AccountEntity,String>{
 	
-  Flux<Account> findByCustomerId(String id);
+  Flux<AccountEntity> findByCustomerId(String id);
   
-  	Flux<Account> findByCustomerIdAndProductId(String customerId,String productId);
+  	Flux<AccountEntity> findByCustomerIdAndProductId(String customerId,String productId);
   	Mono<Long> countByCustomerIdAndProductId(String customerId,String productId);
+  	Flux<AccountEntity> findByProductId(String productId);
   	
   
    

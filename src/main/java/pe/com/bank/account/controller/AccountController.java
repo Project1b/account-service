@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import pe.com.bank.account.entity.Account;
+import pe.com.bank.account.entity.AccountEntity;
 import pe.com.bank.account.service.AccountService;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -26,21 +26,21 @@ public class AccountController {
 	private AccountService accountService;
 	
 	@GetMapping
-	public Mono<ResponseEntity<Flux<Account>>> listarAccounts(){		//Listar Cuentas
+	public Mono<ResponseEntity<Flux<AccountEntity>>> getAccounts(){		//Listar Cuentas
 		return Mono.just(ResponseEntity.ok()
 				.contentType(MediaType.APPLICATION_JSON)
 				.body(accountService.findAll()));
 	}
 	
 	@GetMapping("/{id}")
-	public Mono<ResponseEntity<Account>> listarDetalle(@PathVariable String id){	//Listar Cuenta por Id
+	public Mono<ResponseEntity<AccountEntity>> getDetails(@PathVariable String id){	//Listar Cuenta por Id
 		return accountService.findById(id).map(p -> ResponseEntity.ok()
 				.contentType(MediaType.APPLICATION_JSON)
 				.body(p));
 	}
 	
 	@PostMapping
-	public Mono<Account> agregarAccount(@RequestBody Account account){	//Agregar nueva cuenta	
+	public Mono<AccountEntity> saveAccount(@RequestBody AccountEntity account){	//Agregar nueva cuenta	
 		return accountService.save(account);
 	}
 	
@@ -68,7 +68,7 @@ public class AccountController {
 
 	
 	@PutMapping("/{id}")
-	public Mono<ResponseEntity<Account>> editAccount(@RequestBody Account account, @PathVariable String id){	//Falta probar
+	public Mono<ResponseEntity<AccountEntity>> editAccount(@RequestBody AccountEntity account, @PathVariable String id){	//Falta probar
 		return accountService.findById(id).flatMap(c -> {
 			c.setAccountNumber(account.getAccountNumber());
 			c.setAmount(account.getAmount());
@@ -84,17 +84,21 @@ public class AccountController {
 	}
 	
 	@GetMapping("/customer/{id}")
-	public Flux<Account> getAccountByCustomerId(@PathVariable String id){
-		return accountService.findByCustomerId(id);
+	public Flux<AccountEntity> getAccountByCustomerId(@PathVariable String id){
+		return accountService.getByCustomerId(id);
 		
 	}
 
 	@PutMapping("/update/{id}")
-		public Mono<Account> updateAccount (@RequestBody Account account,@PathVariable String id){
+		public Mono<AccountEntity> updateAccount (@RequestBody AccountEntity account,@PathVariable String id){
 		return accountService.updateAccount(account,id);
 	}
 	
 	
+	@GetMapping("/productId/{id}")
+	public Flux<AccountEntity> getAccountByProductId(@PathVariable String id){
+		return accountService.getAccountByProductId(id);
+	}
 	
 	/*
 	@PutMapping("/{id}")
