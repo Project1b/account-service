@@ -1,7 +1,5 @@
 package pe.com.bank.account.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import lombok.AllArgsConstructor;
@@ -19,7 +17,7 @@ public class AccountServiceImpl implements AccountService {
 	AccountConstant accountConstant;
 	CustomerRestClient customerRestClient;
     AccountRepository accountRepository;
-    private static final Logger log = LoggerFactory.getLogger(AccountServiceImpl.class);
+    //private static final Logger log = LoggerFactory.getLogger(AccountServiceImpl.class);
 
     public Flux<Account> findAll() {
 
@@ -38,6 +36,7 @@ public class AccountServiceImpl implements AccountService {
 				
 				 accountRepository.countByCustomerIdAndProductId(account.getCustomerId(),
 						account.getProductId()).flatMap(count -> {
+							
 							return count.longValue() > 0 ?  Mono.empty():accountRepository.save(account);
 						})			
 				 

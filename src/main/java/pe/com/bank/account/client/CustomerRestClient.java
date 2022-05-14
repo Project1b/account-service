@@ -23,7 +23,7 @@ public class CustomerRestClient {
 	  
 	  public Mono<Customer> getCustomer(String idCustomer){
 		  
-		  var url = customerUrl.concat("/{id}");
+		  var url = customerUrl.concat("/6275a7aab557542205eb1c1d");
 		  
 		  return  webClient
 	                .get()

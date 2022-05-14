@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import pe.com.bank.account.entity.Account;
@@ -21,7 +20,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping("/accounts")
 public class AccountController {
 
 	@Autowired
@@ -38,7 +36,7 @@ public class AccountController {
 	public Mono<ResponseEntity<Account>> listarDetalle(@PathVariable String id){	//Listar Cuenta por Id
 		return accountService.findById(id).map(p -> ResponseEntity.ok()
 				.contentType(MediaType.APPLICATION_JSON)
-				.body(p)).defaultIfEmpty(ResponseEntity.notFound().build());
+				.body(p));
 	}
 	
 	@PostMapping
