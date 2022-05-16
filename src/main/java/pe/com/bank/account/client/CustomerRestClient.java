@@ -3,10 +3,11 @@ package pe.com.bank.account.client;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import pe.com.bank.account.client.entity.Customer;
+import pe.com.bank.account.client.entity.CustomerEntity;
 import reactor.core.publisher.Mono;
 
 import org.springframework.beans.factory.annotation.Value;
+
 @Component
 public class CustomerRestClient {
 	
@@ -18,18 +19,18 @@ public class CustomerRestClient {
 	    }
 	  
 	  
-	  @Value("${restClient.customersUrl}")
+	  @Value("${restClient.customerUrl}")
 	  private String customerUrl;
 	  
-	  public Mono<Customer> getCustomer(String idCustomer){
+	  public Mono<CustomerEntity> getCustomer(String customerId){
 		  
-		  var url = customerUrl.concat("/6275a7aab557542205eb1c1d");
+		  var url = customerUrl.concat("/{id}");
 		  
 		  return  webClient
 	                .get()
-	                .uri(url)
+	                .uri(url,customerId)
 	                .retrieve()
-	                .bodyToMono(Customer.class)
+	                .bodyToMono(CustomerEntity.class)
 	                .log();
   
 	  }  

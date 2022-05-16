@@ -1,6 +1,5 @@
 package pe.com.bank.account.client.entity;
 
-import org.springframework.data.annotation.Id;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,11 +7,11 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Customer {
+public class CustomerEntity {
 	
-	@Id
 	private String id;
 	private String customerType;
-	private String dateAssociated;	
+	private String dateAssociated;
+	private String category;
 
 }

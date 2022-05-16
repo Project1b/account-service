@@ -1,9 +1,14 @@
 package pe.com.bank.account.service;
 
+import java.util.Date;
+
 import org.springframework.stereotype.Service;
 
 import lombok.AllArgsConstructor;
+import pe.com.bank.account.client.CreditRestClient;
 import pe.com.bank.account.client.CustomerRestClient;
+import pe.com.bank.account.client.TransactionRestClient;
+import pe.com.bank.account.dto.CurrentAccountValidateResponse;
 import pe.com.bank.account.entity.Account;
 import pe.com.bank.account.repository.AccountRepository;
 import pe.com.bank.account.util.AccountConstant;
@@ -14,9 +19,11 @@ import reactor.core.publisher.Mono;
 @Service
 public class AccountServiceImpl implements AccountService {
 
-	AccountConstant accountConstant;
+	TransactionRestClient transactionRestClient;
 	CustomerRestClient customerRestClient;
     AccountRepository accountRepository;
+    CreditRestClient creditRestClient;
+    
     //private static final Logger log = LoggerFactory.getLogger(AccountServiceImpl.class);
 
     public Flux<Account> findAll() {
@@ -32,24 +39,38 @@ public class AccountServiceImpl implements AccountService {
 	public Mono<Account> save(Account account) {
 		
 		return customerRestClient.getCustomer(account.getCustomerId()).flatMap(customer -> {
-			return (customer.getCustomerType().equals("Personal"))?
-				
-				 accountRepository.countByCustomerIdAndProductId(account.getCustomerId(),
-						account.getProductId()).flatMap(count -> {
-							
-							return count.longValue() > 0 ?  Mono.empty():accountRepository.save(account);
-						})			
-				 
-				: (account.getProductId().equals(accountConstant.PRODUCT_SAVINGS_ACCOUNT_ID) ||
-						account.getProductId().equals(accountConstant.PRODUCT_FIXED_TERM_ACCOUNT_ID))?Mono.empty():
-							accountRepository.save(account);
-	 
-			
+			if (customer.getCustomerType().equals("Personal")) {			
+				return accountRepository.countByCustomerIdAndProductId(account.getCustomerId(),
+						account.getProductId()).flatMap(count -> count.longValue() > 0 ?  Mono.empty():accountRepository.save(account)
+						);
+			}else {
+				return  (account.getProductId().equals(AccountConstant.PRODUCT_SAVINGS_ACCOUNT_ID) ||
+						account.getProductId().equals(AccountConstant.PRODUCT_FIXED_TERM_ACCOUNT_ID))?Mono.empty():
+							accountRepository.save(account);	 
+			}
 			
 		});
-		
-
 	}
+	
+	public Mono<Account> savePersonal(Account account) {
+		
+			return customerRestClient.getCustomer(account.getCustomerId()).flatMap(customer -> {
+				
+			
+				return	accountRepository.countByCustomerIdAndProductId(account.getCustomerId(),
+					account.getProductId()).flatMap(count -> {
+						
+						if(customer.getCategory().equals("VIP")) {
+							
+							creditRestClient.getCreditByCustomerId(account.getCustomerId());
+							return count.longValue() > 0 ?  Mono.empty():accountRepository.save(account);
+						}
+						return count.longValue() > 0 ?  Mono.empty():accountRepository.save(account);
+					});
+			});
+	}
+	
+
 
     public Mono<Void> delete(Account account) {
 
@@ -72,6 +93,14 @@ public class AccountServiceImpl implements AccountService {
                     account2.setCustomerId(updateAccount.getCustomerId() != null ? updateAccount.getCustomerId() : account2.getCustomerId());
                     return accountRepository.save(account2);
                 });
+    }
+    
+
+    public Mono<CurrentAccountValidateResponse> validateCurrentAccount(String customerId,String accountId,Date date){
+		
+   
+    	
+		return Mono.empty();    	
     }
 
 
