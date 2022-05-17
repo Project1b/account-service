@@ -107,4 +107,36 @@ public class AccountServiceImpl implements AccountService {
 
 
 
+	public Flux<Account> getAccounts() {
+
+		return accountRepository.findAll();
+	}
+
+
+	public Mono<Account> getAccountById(String id) {
+
+		return accountRepository.findById(id);
+	}
+
+
+	public Mono<Account> newAccount(Account account) {
+
+		return accountRepository.save(account);
+	}
+
+
+
+	public Mono<Void> deleteAccountById(String id) {
+
+		return accountRepository.deleteById(id);
+	}
+
+
+	public Mono<Account> getAccountByAccountNum(String accountNumber) {
+
+		return accountRepository.findAccountsByAccountNumber(accountNumber);
+	}
+
+
+
 }

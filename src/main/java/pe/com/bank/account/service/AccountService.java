@@ -41,4 +41,14 @@ public interface AccountService {
 		return accountRepository.findAll();
 	}
 	*/
+
+	public Flux<Account> getAccounts();
+	public Mono<Account> getAccountById(String id);
+
+	public Mono<Account> newAccount(Account account);
+
+	public Mono<Void> deleteAccountById(String id);
+
+	public Mono<Account> getAccountByAccountNum(String accountNumber);
+
 }
