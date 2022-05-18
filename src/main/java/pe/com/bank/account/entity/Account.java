@@ -20,7 +20,8 @@ public class Account {
 	private String accountNumber;
 	private Double amount;
 	private Date dateOpen;
-	private String amounttype;	
+	private String amounttype;
+	private int limitTr;
 	private String productId;
 	private String customerId;
 }

@@ -16,4 +16,5 @@ public class TransactionDTO {
 	private Date date;
 	private String type;
 	private String accountId;
+	private Double commissionTr;
 }
