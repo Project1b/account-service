@@ -1,5 +1,7 @@
 package pe.com.bank.account.entity;
 
+import java.util.Date;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -17,7 +19,7 @@ public class Account {
 	private String id;
 	private String accountNumber;
 	private Double amount;
-	private String dateOpen;
+	private Date dateOpen;
 	private String amounttype;	
 	private String productId;
 	private String customerId;
