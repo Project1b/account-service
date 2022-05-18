@@ -49,8 +49,9 @@ public class TransactionRestClient {
 				.bodyToFlux(Transaction.class);
 	}
 
+	
 	public Mono<TransactionDTO> createTransactionUpdate(TransactionDTO transaction){
-		var url = transactionUrl.concat("/amountUpdate");
+		var url = transactionUrl.concat("/v1/transactions/amountUpdate");
 		return webClient.post()
 				.uri(url)
 				.body(Mono.just(transaction), TransactionDTO.class)

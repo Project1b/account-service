@@ -29,7 +29,7 @@ public class AccountController {
 	@Autowired
 	private AccountService accountService;
 
-
+	@Autowired
 	TransactionRestClient transactionRestClient;
 	
 	// --- CRUD - INI
