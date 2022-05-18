@@ -123,7 +123,7 @@ public class AccountController {
 	public Mono<AccountTransactionDTO> retrieveAccountAndTransactionsByAccountId(@PathVariable("id") String accountId) {	// ERROR
 
 		return accountService.getAccountById(accountId).flatMap(account -> {
-			return transactionRestClient.retrieveTransaction(account.getAccountNumber()).collectList().map(a ->
+			return transactionRestClient.retrieveTransaction(accountId).collectList().map(a ->
 					new AccountTransactionDTO(
 							account.getId(),
 							account.getAccountNumber(),
