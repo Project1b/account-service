@@ -41,7 +41,7 @@ public class TransactionRestClient {
 
 	public Flux<Transaction> retrieveTransaction(String accountNumber){
 
-		var url = transactionUrl.concat("/v1/transactions/account/{id}");
+		var url = transactionUrl.concat("/v1/transactions/account/{id}"); 
 		return webClient
 				.get()
 				.uri(url, accountNumber)
