@@ -19,6 +19,5 @@ public class Transaction {
 	private String type;
 	private String accountNumber;
 	private String creditId;
-	
-	//private List<String> TransacctionId;
+
 }

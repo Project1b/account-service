@@ -9,14 +9,15 @@ import pe.com.bank.account.entity.Account;
 
 
 @Repository
-public interface AccountRepository extends ReactiveMongoRepository<Account,String>{
-	
-  Flux<Account> findByCustomerId(String id);
-  
-  	Flux<Account> findByCustomerIdAndProductId(String customerId,String productId);
-  	Mono<Long> countByCustomerIdAndProductId(String customerId,String productId);
+public interface AccountRepository extends ReactiveMongoRepository<Account, String> {
 
-	Mono<Account> findAccountsByAccountNumber(String accountNumber);
-   
-  
+    Flux<Account> findByCustomerId(String id);
+
+    Flux<Account> findByCustomerIdAndProductId(String customerId, String productId);
+
+    Mono<Long> countByCustomerIdAndProductId(String customerId, String productId);
+
+    Mono<Account> findAccountsByAccountNumber(String accountNumber);
+
+
 }

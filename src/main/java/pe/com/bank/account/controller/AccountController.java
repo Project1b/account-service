@@ -1,13 +1,11 @@
 package pe.com.bank.account.controller;
 
 import java.net.URI;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import pe.com.bank.account.client.TransactionRestClient;
 import pe.com.bank.account.dto.AccountTransactionDTO;
 import pe.com.bank.account.dto.TransactionDTO;
@@ -22,44 +20,25 @@ public class AccountController {
 
     @Autowired
     private AccountService accountService;
-
     @Autowired
     TransactionRestClient transactionRestClient;
 
-    // --- CRUD - INI
 
     @GetMapping
-    public Mono<ResponseEntity<Flux<Account>>> AllAccountsList() {
+    public Mono<ResponseEntity<Flux<Account>>> allAccountsList() {
         return Mono.just(ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(accountService.findAll()));
     }
-	
-	/*
-	@GetMapping("/accounts")
-	public Mono<ResponseEntity<Flux<Account>>> getAccountsList(){
 
-		return Mono.just(ResponseEntity.ok()
-				.contentType(MediaType.APPLICATION_JSON)
-				.body(accountService.getAccounts()));
-	}	*/
 
     @GetMapping("/{id}")
-    public Mono<ResponseEntity<Account>> AccountById(@PathVariable String id) {
+    public Mono<ResponseEntity<Account>> accountById(@PathVariable String id) {
         return accountService.findById(id).map(p -> ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(p));
     }
-	
-	/*
-	@GetMapping("/accounts/{id}")
-	public Mono<ResponseEntity<Account>> getAccountById(@PathVariable String id){
 
-		return accountService.getAccountById(id).map(p -> ResponseEntity.ok()
-				.contentType(MediaType.APPLICATION_JSON)
-				.body(p)).defaultIfEmpty(ResponseEntity.notFound().build());
-	}
-	*/
 
     @PostMapping("/accounts")
     public Mono<Account> addNewAccount(@RequestBody Account account) {
@@ -73,24 +52,12 @@ public class AccountController {
             return accountService.delete(c).then(Mono.just(new ResponseEntity<Void>(HttpStatus.NO_CONTENT)));
         }).defaultIfEmpty(new ResponseEntity<Void>(HttpStatus.NOT_FOUND));
     }
-	
-	/*
-	@DeleteMapping("/accounts/{id}")
-	public Mono<Void> deleteAccountById(@PathVariable String id){
 
-		return accountService.deleteAccountById(id);
-	}	*/
 
     @PutMapping("/{id}")
-    public Mono<ResponseEntity<Account>> editAccount(@RequestBody Account account, @PathVariable String id) {    //ERROR
-        return accountService.findById(id).flatMap(c -> {
-                    c.setAccountNumber(account.getAccountNumber());
-                    c.setAmount(account.getAmount());
-                    c.setAmounttype(account.getAmounttype());
-                    c.setDateOpen(account.getDateOpen());
-
-                    return accountService.save(c);
-                }).map(c -> ResponseEntity.created(URI.create("/transaction/".concat(c.getAccountNumber())))
+    public Mono<ResponseEntity<Account>> editAccount(@RequestBody Account account, @PathVariable String id) {
+        return accountService.editAccount(account,id)
+                .map(c -> ResponseEntity.created(URI.create("/transaction/".concat(c.getAccountNumber())))
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(c))
                 .defaultIfEmpty(ResponseEntity.notFound().build());
@@ -114,116 +81,23 @@ public class AccountController {
     }
 
     @GetMapping("/accountTransactions/{id}")
-    public Mono<AccountTransactionDTO> retrieveAccountAndTransactionsByAccountId(@PathVariable("id") String accountId) {    // ERROR
-
-        return accountService.getAccountById(accountId).flatMap(account -> {
-            return transactionRestClient.retrieveTransaction(accountId).collectList().map(a ->
-                    new AccountTransactionDTO(
-                            account.getId(),
-                            account.getAccountNumber(),
-                            account.getAmount(),
-                            account.getDateOpen(),
-                            account.getAmounttype(),
-                            a
-                    ));
-        });
+    public Mono<AccountTransactionDTO> retrieveAccountAndTransactionsByAccountId(@PathVariable("id") String accountId) {
+        return accountService.retrieveAccountAndTransactionsByAccountId(accountId);
     }
 
     @PostMapping("/updateAmountRest")
-    public Mono<TransactionDTO> updateRestAmountByAccountId(@RequestBody MovementEntity movEntity) {    //ERROR AL INSERTAR A TRANSACTION
-        return accountService.getAccountById(movEntity.getAccount_id()).flatMap(crc -> {
-            var r = accountService.updateAccount(new Account(crc.getId(),
-                    crc.getAccountNumber(), crc.getAmount() - movEntity.getAmount(),
-                    crc.getDateOpen(), crc.getAmounttype(), crc.getLimitTr(), crc.getProductId(),
-                    crc.getCustomerId()), movEntity.getAccount_id());
-            return r.flatMap(dsf -> {
-                var count = transactionRestClient.contTransactionByType("Retiro", movEntity.getAccount_id());
-                return count.flatMap(c -> {
-                    if (c > crc.getLimitTr()) {
-                        var r2 = transactionRestClient.createTransactionUpdate(new TransactionDTO(
-                                movEntity.getAmount(), movEntity.getDate(),
-                                movEntity.getType(), movEntity.getAccount_id(), 10.0));
-                        return r2.map(sd -> new TransactionDTO(
-                                movEntity.getAmount(), movEntity.getDate(),
-                                movEntity.getType(), movEntity.getAccount_id(), 10.0));
-                    } else {
-                        var r2 = transactionRestClient.createTransactionUpdate(new TransactionDTO(
-                                movEntity.getAmount(), movEntity.getDate(),
-                                movEntity.getType(), movEntity.getAccount_id(), 0.0));
-                        return r2.map(sd -> new TransactionDTO(
-                                movEntity.getAmount(), movEntity.getDate(), movEntity.getType(),
-                                movEntity.getAccount_id(), 0.0));
-                    }
-                });
-            });
-
-        });
-
+    public Mono<TransactionDTO> updateRestAmountByAccountId(@RequestBody MovementEntity movEntity) {
+        return accountService.updateRestAmountByAccountId(movEntity);
     }
 
-    // Actualizar ammount : Deposito
-
     @PostMapping("/updateAmountSum")
-    public Mono<TransactionDTO> updateSumAmountByAccountId(@RequestBody MovementEntity movEntity) {    //ERROR AL INSERTAR A TRANSACTION
-
-        return accountService.getAccountById(movEntity.getAccount_id()).flatMap(crc -> {
-            var r = accountService.updateAccount(new Account(crc.getId(),
-                    crc.getAccountNumber(),
-                    crc.getAmount() + movEntity.getAmount(),
-                    crc.getDateOpen(),
-                    crc.getAmounttype(), crc.getLimitTr(), crc.getProductId(),
-                    crc.getCustomerId()), movEntity.getAccount_id());
-
-            return r.flatMap(dsf -> {
-                var count = transactionRestClient.contTransactionByType("Retiro", movEntity.getAccount_id());
-                return count.flatMap(c -> {
-                    if (c > crc.getLimitTr()) {
-                        var r2 = transactionRestClient.createTransactionUpdate(new TransactionDTO(
-                                movEntity.getAmount(), movEntity.getDate(),
-                                movEntity.getType(), movEntity.getAccount_id(), 10.0));
-
-                        return r2.map(sd -> new TransactionDTO(
-                                movEntity.getAmount(), movEntity.getDate(),
-                                movEntity.getType(), movEntity.getAccount_id(), 10.0));
-                    } else {
-                        var r2 = transactionRestClient.createTransactionUpdate(new TransactionDTO(
-                                movEntity.getAmount(), movEntity.getDate(), movEntity.getType(),
-                                movEntity.getAccount_id(), 0.0));
-
-                        return r2.map(sd -> new TransactionDTO(
-                                movEntity.getAmount(), movEntity.getDate(),
-                                movEntity.getType(), movEntity.getAccount_id(), 0.0));
-                    }
-                });
-            });
-        });
+    public Mono<TransactionDTO> updateSumAmountByAccountId(@RequestBody MovementEntity movEntity) {
+        return accountService.updateSumAmountByAccountId(movEntity);
     }
 
     @GetMapping("/count")
     Mono<Long> retornaCount(@RequestParam(name = "accountId") String accountId, @RequestParam String typ) {
         return transactionRestClient.contTransactionByType(typ, accountId);
     }
-	
-	/*
-	@PostMapping
-	public Mono<Account> agregarAccount(@RequestBody Account account){	//Agregar nueva cuenta	
-		return accountService.save(account);
-	}
-	*/
-	
-	/*
-	@PostMapping
-	public Mono<ResponseEntity<Account>> crearAccount(@RequestBody Account account){
-		if(account.getDateOpen()==null) {
-			account.setDateOpen(new Date());
-		}
-		
-		return accountService.save(account).map(c -> ResponseEntity
-				.created(URI.create("productos".concat(c.getAccount_id())))
-				.contentType(MediaType.APPLICATION_JSON)
-				.body(c));
-				
-	} */
-
 
 }

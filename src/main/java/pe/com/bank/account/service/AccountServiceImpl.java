@@ -1,15 +1,16 @@
 package pe.com.bank.account.service;
 
 import java.util.Date;
-
 import org.springframework.stereotype.Service;
-
 import lombok.AllArgsConstructor;
 import pe.com.bank.account.client.CreditRestClient;
 import pe.com.bank.account.client.CustomerRestClient;
 import pe.com.bank.account.client.TransactionRestClient;
+import pe.com.bank.account.dto.AccountTransactionDTO;
 import pe.com.bank.account.dto.CurrentAccountValidateResponse;
+import pe.com.bank.account.dto.TransactionDTO;
 import pe.com.bank.account.entity.Account;
+import pe.com.bank.account.entity.MovementEntity;
 import pe.com.bank.account.repository.AccountRepository;
 import pe.com.bank.account.util.AccountConstant;
 import reactor.core.publisher.Flux;
@@ -23,8 +24,6 @@ public class AccountServiceImpl implements AccountService {
 	CustomerRestClient customerRestClient;
     AccountRepository accountRepository;
     CreditRestClient creditRestClient;
-    
-    //private static final Logger log = LoggerFactory.getLogger(AccountServiceImpl.class);
 
     public Flux<Account> findAll() {
 
@@ -37,7 +36,6 @@ public class AccountServiceImpl implements AccountService {
     }
 
 	public Mono<Account> save(Account account) {
-		
 		return customerRestClient.getCustomer(account.getCustomerId()).flatMap(customer -> {
 			if (customer.getCustomerType().equals("Personal")) {			
 				return accountRepository.countByCustomerIdAndProductId(account.getCustomerId(),
@@ -53,15 +51,10 @@ public class AccountServiceImpl implements AccountService {
 	}
 	
 	public Mono<Account> savePersonal(Account account) {
-		
 			return customerRestClient.getCustomer(account.getCustomerId()).flatMap(customer -> {
-				
-			
 				return	accountRepository.countByCustomerIdAndProductId(account.getCustomerId(),
 					account.getProductId()).flatMap(count -> {
-						
 						if(customer.getCategory().equals("VIP")) {
-							
 							creditRestClient.getCreditByCustomerId(account.getCustomerId());
 							return count.longValue() > 0 ?  Mono.empty():accountRepository.save(account);
 						}
@@ -69,11 +62,8 @@ public class AccountServiceImpl implements AccountService {
 					});
 			});
 	}
-	
-
 
     public Mono<Void> delete(Account account) {
-
         return accountRepository.delete(account);
     }
 
@@ -94,49 +84,119 @@ public class AccountServiceImpl implements AccountService {
                     return accountRepository.save(account2);
                 });
     }
-    
 
     public Mono<CurrentAccountValidateResponse> validateCurrentAccount(String customerId,String accountId,Date date){
-		
-   
-    	
 		return Mono.empty();    	
     }
 
-
-
-
-
 	public Flux<Account> getAccounts() {
-
 		return accountRepository.findAll();
 	}
 
-
 	public Mono<Account> getAccountById(String id) {
-
 		return accountRepository.findById(id);
 	}
 
-
 	public Mono<Account> newAccount(Account account) {
-
 		return accountRepository.save(account);
 	}
 
-
-
 	public Mono<Void> deleteAccountById(String id) {
-
 		return accountRepository.deleteById(id);
 	}
-
 
 	public Mono<Account> getAccountByAccountNum(String accountNumber) {
 
 		return accountRepository.findAccountsByAccountNumber(accountNumber);
 	}
 
+	public Mono<Account> editAccount(Account account, String id) {
+		return findById(id).flatMap(c -> {
+					c.setAccountNumber(account.getAccountNumber());
+					c.setAmount(account.getAmount());
+					c.setAmounttype(account.getAmounttype());
+					c.setDateOpen(account.getDateOpen());
+					return save(c);
+				});
+	}
 
+	public Mono<AccountTransactionDTO> retrieveAccountAndTransactionsByAccountId(String accountId) {
+		return getAccountById(accountId).flatMap(account -> {
+			return transactionRestClient.retrieveTransaction(accountId).collectList().map(a ->
+					new AccountTransactionDTO(
+							account.getId(),
+							account.getAccountNumber(),
+							account.getAmount(),
+							account.getDateOpen(),
+							account.getAmounttype(),
+							a
+					));
+		});
+	}
+
+	public Mono<TransactionDTO> updateRestAmountByAccountId(MovementEntity movEntity) {    //ERROR AL INSERTAR A TRANSACTION
+		return getAccountById(movEntity.getAccount_id()).flatMap(crc -> {
+			var r = updateAccount(new Account(crc.getId(),
+					crc.getAccountNumber(), crc.getAmount() - movEntity.getAmount(),
+					crc.getDateOpen(), crc.getAmounttype(), crc.getLimitTr(), crc.getProductId(),
+					crc.getCustomerId()), movEntity.getAccount_id());
+			return r.flatMap(dsf -> {
+				var count = transactionRestClient.contTransactionByType("Retiro", movEntity.getAccount_id());
+				return count.flatMap(c -> {
+					if (c > crc.getLimitTr()) {
+						var r2 = transactionRestClient.createTransactionUpdate(new TransactionDTO(
+								movEntity.getAmount(), movEntity.getDate(),
+								movEntity.getType(), movEntity.getAccount_id(), 10.0));
+						return r2.map(sd -> new TransactionDTO(
+								movEntity.getAmount(), movEntity.getDate(),
+								movEntity.getType(), movEntity.getAccount_id(), 10.0));
+					} else {
+						var r2 = transactionRestClient.createTransactionUpdate(new TransactionDTO(
+								movEntity.getAmount(), movEntity.getDate(),
+								movEntity.getType(), movEntity.getAccount_id(), 0.0));
+						return r2.map(sd -> new TransactionDTO(
+								movEntity.getAmount(), movEntity.getDate(), movEntity.getType(),
+								movEntity.getAccount_id(), 0.0));
+					}
+				});
+			});
+
+		});
+
+	}
+
+	public Mono<TransactionDTO> updateSumAmountByAccountId( MovementEntity movEntity) {    //ERROR AL INSERTAR A TRANSACTION
+		return getAccountById(movEntity.getAccount_id()).flatMap(crc -> {
+			var r = updateAccount(new Account(crc.getId(),
+					crc.getAccountNumber(),
+					crc.getAmount() + movEntity.getAmount(),
+					crc.getDateOpen(),
+					crc.getAmounttype(), crc.getLimitTr(), crc.getProductId(),
+					crc.getCustomerId()), movEntity.getAccount_id());
+
+			return r.flatMap(dsf -> {
+				var count = transactionRestClient.contTransactionByType("Retiro", movEntity.getAccount_id());
+				return count.flatMap(c -> {
+					if (c > crc.getLimitTr()) {
+						var r2 = transactionRestClient.createTransactionUpdate(new TransactionDTO(
+								movEntity.getAmount(), movEntity.getDate(),
+								movEntity.getType(), movEntity.getAccount_id(), 10.0));
+
+						return r2.map(sd -> new TransactionDTO(
+								movEntity.getAmount(), movEntity.getDate(),
+								movEntity.getType(), movEntity.getAccount_id(), 10.0));
+					} else {
+						var r2 = transactionRestClient.createTransactionUpdate(new TransactionDTO(
+								movEntity.getAmount(), movEntity.getDate(), movEntity.getType(),
+								movEntity.getAccount_id(), 0.0));
+
+						return r2.map(sd -> new TransactionDTO(
+								movEntity.getAmount(), movEntity.getDate(),
+								movEntity.getType(), movEntity.getAccount_id(), 0.0));
+					}
+				});
+			});
+		});
+	}
 
 }
