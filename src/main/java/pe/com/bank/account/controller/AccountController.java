@@ -1,7 +1,6 @@
 package pe.com.bank.account.controller;
 
 import java.net.URI;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +20,6 @@ import org.springframework.web.bind.annotation.*;
 import pe.com.bank.account.client.TransactionRestClient;
 import pe.com.bank.account.dto.AccountTransactionDTO;
 import pe.com.bank.account.dto.TransactionDTO;
-import pe.com.bank.account.entity.Account;
 import pe.com.bank.account.entity.MovementEntity;
 import pe.com.bank.account.service.AccountService;
 import reactor.core.publisher.Flux;
