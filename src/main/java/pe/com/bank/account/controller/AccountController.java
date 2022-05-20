@@ -1,7 +1,6 @@
 package pe.com.bank.account.controller;
 
 import java.net.URI;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -14,16 +13,26 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import lombok.AllArgsConstructor;
 import pe.com.bank.account.entity.AccountEntity;
+import org.springframework.web.bind.annotation.*;
+import pe.com.bank.account.client.TransactionRestClient;
+import pe.com.bank.account.dto.AccountTransactionDTO;
+import pe.com.bank.account.dto.TransactionDTO;
+import pe.com.bank.account.entity.Account;
+import pe.com.bank.account.entity.MovementEntity;
 import pe.com.bank.account.service.AccountService;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+@AllArgsConstructor
 @RestController
 public class AccountController {
 
-	@Autowired
 	private AccountService accountService;
+	private TransactionRestClient transactionRestClient;
 	
 	@GetMapping
 	public Mono<ResponseEntity<Flux<AccountEntity>>> getAccounts(){		//Listar Cuentas
@@ -32,31 +41,19 @@ public class AccountController {
 				.body(accountService.findAll()));
 	}
 	
-	@GetMapping("/{id}")
-	public Mono<ResponseEntity<AccountEntity>> getDetails(@PathVariable String id){	//Listar Cuenta por Id
-		return accountService.findById(id).map(p -> ResponseEntity.ok()
-				.contentType(MediaType.APPLICATION_JSON)
-				.body(p));
-	}
+	 @GetMapping("/{id}")
+	    public Mono<ResponseEntity<AccountEntity>> accountById(@PathVariable String id) {
+	        return accountService.findById(id).map(p -> ResponseEntity.ok()
+	                .contentType(MediaType.APPLICATION_JSON)
+	                .body(p));
+	   }
 	
 	@PostMapping
 	public Mono<AccountEntity> saveAccount(@RequestBody AccountEntity account){	//Agregar nueva cuenta	
 		return accountService.save(account);
 	}
 	
-	/*
-	@PostMapping
-	public Mono<ResponseEntity<Account>> crearAccount(@RequestBody Account account){
-		if(account.getDateOpen()==null) {
-			account.setDateOpen(new Date());
-		}
-		
-		return accountService.save(account).map(c -> ResponseEntity
-				.created(URI.create("productos".concat(c.getAccount_id())))
-				.contentType(MediaType.APPLICATION_JSON)
-				.body(c));
-				
-	} */
+
 	
 	@DeleteMapping("/{id}")
 	public Mono<ResponseEntity<Void>> deleteAccount(@PathVariable String id){	//Eliminar cuenta por Id
@@ -64,36 +61,24 @@ public class AccountController {
 			return accountService.delete(c).then(Mono.just(new ResponseEntity<Void>(HttpStatus.NO_CONTENT)));
 		}).defaultIfEmpty(new ResponseEntity<Void>(HttpStatus.NOT_FOUND));
 	}
-
-
 	
 	@PutMapping("/{id}")
-	public Mono<ResponseEntity<AccountEntity>> editAccount(@RequestBody AccountEntity account, @PathVariable String id){	//Falta probar
-		return accountService.findById(id).flatMap(c -> {
-			c.setAccountNumber(account.getAccountNumber());
-			c.setAmount(account.getAmount());
-			c.setAmounttype(account.getAmounttype());
-			c.setDateOpen(account.getDateOpen());
-			
-			return accountService.save(c);
-		    }).map(c -> ResponseEntity.created(URI.create("/transaction/".concat(c.getAccountNumber())))
-				.contentType(MediaType.APPLICATION_JSON)
-				.body(c))
-				.defaultIfEmpty(ResponseEntity.notFound().build());
+	public Mono<ResponseEntity<AccountEntity>> editAccount(@RequestBody AccountEntity account, @PathVariable String id) {
+        return accountService.editAccount(account,id)
+                .map(c -> ResponseEntity.created(URI.create("/transaction/".concat(c.getAccountNumber())))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(c))
+                .defaultIfEmpty(ResponseEntity.notFound().build());
 
-	}
+    }
 	
-	@GetMapping("/customer/{id}")
-	public Flux<AccountEntity> getAccountByCustomerId(@PathVariable String id){
-		return accountService.getByCustomerId(id);
-		
-	}
+    @GetMapping
+    public Mono<ResponseEntity<Flux<AccountEntity>>> allAccountsList() {
+        return Mono.just(ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(accountService.findAll()));
+    }
 
-	@PutMapping("/update/{id}")
-		public Mono<AccountEntity> updateAccount (@RequestBody AccountEntity account,@PathVariable String id){
-		return accountService.updateAccount(account,id);
-	}
-	
 	
 	@GetMapping("/productId/{id}")
 	public Flux<AccountEntity> getAccountByProductId(@PathVariable String id){
@@ -119,12 +104,46 @@ public class AccountController {
 	*/
 	
 
-	
-	/*
-	@GetMapping("/listAccount")
-	public Flux<Account> findAllAccount(){
-		return accountService.findAllAccount();
-	}
-	*/
-	
+    @PostMapping("/accounts")
+    public Mono<AccountEntity> addNewAccount(@RequestBody AccountEntity account) {
+
+        return accountService.newAccount(account);
+    }
+
+    @GetMapping("/customer/{id}")
+    public Flux<AccountEntity> getAccountByCustomerId(@PathVariable String id) {
+        return accountService.getByCustomerId(id);
+
+    }
+
+    @PutMapping("/update/{id}")
+    public Mono<AccountEntity> updateAccount(@RequestBody AccountEntity account, @PathVariable String id) {
+        return accountService.updateAccount(account, id);
+    }
+
+    @GetMapping("/accountsNumber/{accountNumber}")
+    public Mono<AccountEntity> getAccountsByAccountNumberX(@PathVariable("accountNumber") String accountNumber) {
+        return accountService.getAccountByAccountNum(accountNumber);
+    }
+
+    @GetMapping("/accountTransactions/{id}")
+    public Mono<AccountTransactionDTO> retrieveAccountAndTransactionsByAccountId(@PathVariable("id") String accountId) {
+        return accountService.retrieveAccountAndTransactionsByAccountId(accountId);
+    }
+
+    @PostMapping("/updateAmountRest")
+    public Mono<TransactionDTO> updateRestAmountByAccountId(@RequestBody MovementEntity movEntity) {
+        return accountService.updateRestAmountByAccountId(movEntity);
+    }
+
+    @PostMapping("/updateAmountSum")
+    public Mono<TransactionDTO> updateSumAmountByAccountId(@RequestBody MovementEntity movEntity) {
+        return accountService.updateSumAmountByAccountId(movEntity);
+    }
+
+    @GetMapping("/count")
+    Mono<Long> retornaCount(@RequestParam(name = "accountId") String accountId, @RequestParam String typ) {
+        return transactionRestClient.contTransactionByType(typ, accountId);
+    }
+
 }

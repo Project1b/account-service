@@ -1,20 +1,19 @@
-package pe.com.bank.account.client.entity;
+package pe.com.bank.account.dto;
 
 import java.util.Date;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Data
-public class TransactionEntity {
+public class TransactionDTO {
 
-	private String transactionId;
-	private Double amount;
+	//private String transactionId;
+	private double amount;
 	private Date date;
 	private String type;
-	private String accountNumber;
 	private String accountId;
-	private String creditId;
+	private Double commissionTr;
 }
