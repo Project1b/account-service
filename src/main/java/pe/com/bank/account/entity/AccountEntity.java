@@ -25,4 +25,7 @@ public class AccountEntity {
 	private String productId;
 	private String customerId;
 	private String cardId;
+	private String cardLabel;
+	private Date cardAssociation;
+
 }
