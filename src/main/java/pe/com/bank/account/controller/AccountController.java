@@ -70,12 +70,12 @@ public class AccountController {
 
     }
 	
-    @GetMapping
+  /*  @GetMapping
     public Mono<ResponseEntity<Flux<AccountEntity>>> allAccountsList() {
         return Mono.just(ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(accountService.findAll()));
-    }
+    }*/
 
 	
 	@GetMapping("/productId/{id}")
@@ -142,6 +142,11 @@ public class AccountController {
     @GetMapping("/count")
     Mono<Long> retornaCount(@RequestParam(name = "accountId") String accountId, @RequestParam String typ) {
         return transactionRestClient.contTransactionByType(typ, accountId);
+    }
+
+    @GetMapping("/getAccountCard")
+    Flux<AccountEntity> getAccountCard(@RequestParam String cardId){
+        return accountService.findAllByCardId(cardId);
     }
 
 }

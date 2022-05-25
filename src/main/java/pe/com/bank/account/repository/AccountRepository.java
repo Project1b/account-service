@@ -21,5 +21,7 @@ public interface AccountRepository extends ReactiveMongoRepository<AccountEntity
   	
    Mono<AccountEntity> findAccountsByAccountNumber(String accountNumber);
 
+   Flux<AccountEntity> findByCardId(String cardId);
+
   
 }

@@ -168,7 +168,7 @@ public class AccountServiceImpl implements AccountService {
 			var r = updateAccount(new AccountEntity(crc.getId(),
 					crc.getAccountNumber(), crc.getAmount() - movEntity.getAmount(),
 					crc.getDateOpen(), crc.getAmounttype(), crc.getLimitTr(), crc.getProductId(),
-					crc.getCustomerId()), movEntity.getAccount_id());
+					crc.getCustomerId(),crc.getCardId()), movEntity.getAccount_id());
 			return r.flatMap(dsf -> {
 				var count = transactionRestClient.contTransactionByType("Retiro", movEntity.getAccount_id());
 				return count.flatMap(c -> {
@@ -201,7 +201,7 @@ public class AccountServiceImpl implements AccountService {
 					crc.getAmount() + movEntity.getAmount(),
 					crc.getDateOpen(),
 					crc.getAmounttype(), crc.getLimitTr(), crc.getProductId(),
-					crc.getCustomerId()), movEntity.getAccount_id());
+					crc.getCustomerId(),crc.getCardId()), movEntity.getAccount_id());
 
 			return r.flatMap(dsf -> {
 				var count = transactionRestClient.contTransactionByType("Retiro", movEntity.getAccount_id());
@@ -226,6 +226,10 @@ public class AccountServiceImpl implements AccountService {
 				});
 			});
 		});
+	}
+
+	public Flux<AccountEntity> findAllByCardId(String id){
+		return accountRepository.findByCardId(id);
 	}
 
 }

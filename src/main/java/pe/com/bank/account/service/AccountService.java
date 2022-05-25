@@ -46,5 +46,7 @@ public interface AccountService {
 	public Mono<AccountTransactionDTO> retrieveAccountAndTransactionsByAccountId(String accountId);
 
 	public Mono<AccountEntity> editAccount(AccountEntity account, String id);
+
+	public Flux<AccountEntity> findAllByCardId(String id);
 	
 }
