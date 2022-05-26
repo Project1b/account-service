@@ -292,6 +292,9 @@ public class AccountServiceImpl implements AccountService {
                 .take(1).next();
     }
 
-
+	public Mono<AccountEntity> getSaldoCuentaPrincipalByCardId(RptAccountCard prtAccCard) {
+		
+		return accountRepository.findAccountEntitiesByCardIdAndCardLabel(prtAccCard.getCardId(), prtAccCard.getCardLabel());
+	}
 
 }
