@@ -22,6 +22,7 @@ import pe.com.bank.account.client.TransactionRestClient;
 import pe.com.bank.account.dto.AccountCardDTO;
 import pe.com.bank.account.dto.AccountTransactionDTO;
 import pe.com.bank.account.dto.TransactionDTO;
+import pe.com.bank.account.dto.RptAccountCard;
 import pe.com.bank.account.entity.MovementEntity;
 import pe.com.bank.account.service.AccountService;
 import reactor.core.publisher.Flux;
