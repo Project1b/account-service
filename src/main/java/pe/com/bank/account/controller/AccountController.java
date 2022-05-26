@@ -161,10 +161,6 @@ public class AccountController {
     	return accountService.createAccountCard(accountCard);
     }
     
-    @GetMapping("/cardId/{cardId}")
-    Mono<AccountEntity> getAccountByCardId(@PathVariable String cardId) {
-        return accountService.getAccountByCardId(cardId);
-    }
 
     @GetMapping("/getAccountCard")
     Flux<AccountEntity> getAccountCard(@RequestParam String cardId){
