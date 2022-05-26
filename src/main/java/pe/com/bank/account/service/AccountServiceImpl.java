@@ -39,15 +39,15 @@ public class AccountServiceImpl implements AccountService {
 		
 		return customerRestClient.getCustomer(account.getCustomerId()).flatMap(customer -> {
 			if (customer.getCustomerType().equals("Personal")) {			
-				return this.savePersonal(account);
+				return savePersonal(account);
 			}else {
-				return  this.saveEnterprise(account);
+				return saveEnterprise(account);
 			}
 			
 		});
 	}
 	
-	public Mono<AccountEntity> savePersonal(AccountEntity account) {
+	private Mono<AccountEntity> savePersonal(AccountEntity account) {
 		
 			return customerRestClient.getCustomer(account.getCustomerId()).flatMap(customer -> {		
 				return	accountRepository.countByCustomerIdAndProductId(account.getCustomerId(),
@@ -65,7 +65,7 @@ public class AccountServiceImpl implements AccountService {
 			});
 	}
 	
-	public Mono<AccountEntity> saveEnterprise(AccountEntity account) {
+	private Mono<AccountEntity> saveEnterprise(AccountEntity account) {
 		
 		return customerRestClient.getCustomer(account.getCustomerId()).flatMap(customer -> {		
 			return	accountRepository.countByCustomerIdAndProductId(account.getCustomerId(),
@@ -99,14 +99,19 @@ public class AccountServiceImpl implements AccountService {
     public Mono<AccountEntity> updateAccount(AccountEntity updateAccount, String id) {
 
         return accountRepository.findById(id)
-                .flatMap(account2 -> {
-                    account2.setAccountNumber(updateAccount.getAccountNumber() != null ? updateAccount.getAccountNumber() : account2.getAccountNumber());
-                    account2.setAmount(updateAccount.getAmount() != null ? updateAccount.getAmount() : account2.getAmount());
-                    account2.setDateOpen(updateAccount.getDateOpen() != null ? updateAccount.getDateOpen() : account2.getDateOpen());
-                    account2.setAmounttype(updateAccount.getAmounttype() != null ? updateAccount.getAmounttype() : account2.getAmounttype());
-                    account2.setProductId(updateAccount.getProductId() != null ? updateAccount.getProductId() : account2.getProductId());
-                    account2.setCustomerId(updateAccount.getCustomerId() != null ? updateAccount.getCustomerId() : account2.getCustomerId());
-                    return accountRepository.save(account2);
+                .flatMap(account -> {
+                	
+                	account.setId(id);
+                	account.setAccountNumber(updateAccount.getAccountNumber() != null ? updateAccount.getAccountNumber() : account.getAccountNumber());
+                	account.setAmount(updateAccount.getAmount() != null ? updateAccount.getAmount() : account.getAmount());
+                	account.setDateOpen(updateAccount.getDateOpen() != null ? updateAccount.getDateOpen() : account.getDateOpen());
+                	account.setAmounttype(updateAccount.getAmounttype() != null ? updateAccount.getAmounttype() : account.getAmounttype());
+                	account.setProductId(updateAccount.getProductId() != null ? updateAccount.getProductId() : account.getProductId());
+                	account.setCustomerId(updateAccount.getCustomerId() != null ? updateAccount.getCustomerId() : account.getCustomerId());
+                	account.setCardId(updateAccount.getCardId() != null ? updateAccount.getCardId() : account.getCardId());
+                	account.setCardLabel(updateAccount.getCardLabel() != null ? updateAccount.getCardLabel() : account.getCardLabel());
+
+                    return accountRepository.save(account);
                 });
     }
 
@@ -120,6 +125,10 @@ public class AccountServiceImpl implements AccountService {
     
     public Flux<AccountEntity> getAccountByProductId (String productId){
     	return accountRepository.findByProductId(productId);
+    }
+    
+    public Flux<AccountEntity> getByCustomerIdAndProductId(String customerId,String productId){
+    	return accountRepository.findByCustomerIdAndProductId(customerId, productId);
     }
 
 	public Mono<AccountEntity> getAccountById(String id) {
@@ -168,7 +177,7 @@ public class AccountServiceImpl implements AccountService {
 			var r = updateAccount(new AccountEntity(crc.getId(),
 					crc.getAccountNumber(), crc.getAmount() - movEntity.getAmount(),
 					crc.getDateOpen(), crc.getAmounttype(), crc.getLimitTr(), crc.getProductId(),
-					crc.getCustomerId()), movEntity.getAccount_id());
+					crc.getCustomerId(),crc.getCardId(),crc.getCardLabel()), movEntity.getAccount_id());
 			return r.flatMap(dsf -> {
 				var count = transactionRestClient.contTransactionByType("Retiro", movEntity.getAccount_id());
 				return count.flatMap(c -> {
@@ -201,7 +210,7 @@ public class AccountServiceImpl implements AccountService {
 					crc.getAmount() + movEntity.getAmount(),
 					crc.getDateOpen(),
 					crc.getAmounttype(), crc.getLimitTr(), crc.getProductId(),
-					crc.getCustomerId()), movEntity.getAccount_id());
+					crc.getCustomerId(),crc.getCardId(),crc.getCardLabel()), movEntity.getAccount_id());
 
 			return r.flatMap(dsf -> {
 				var count = transactionRestClient.contTransactionByType("Retiro", movEntity.getAccount_id());
@@ -226,6 +235,10 @@ public class AccountServiceImpl implements AccountService {
 				});
 			});
 		});
+	}
+	
+	public Mono<AccountEntity> getAccountByCardId(String cardId){
+		return accountRepository.findByCardId(cardId);
 	}
 
 }

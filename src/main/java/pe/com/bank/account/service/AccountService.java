@@ -22,6 +22,8 @@ public interface AccountService {
 	public Mono<Void> delete(AccountEntity account);
 	
 	public Flux<AccountEntity> getByCustomerId(String id);
+	
+	public Flux<AccountEntity> getByCustomerIdAndProductId(String customerId,String productId);
 
 	public Mono<AccountEntity> updateAccount(AccountEntity updateAccount, String id);
 	
@@ -46,5 +48,7 @@ public interface AccountService {
 	public Mono<AccountTransactionDTO> retrieveAccountAndTransactionsByAccountId(String accountId);
 
 	public Mono<AccountEntity> editAccount(AccountEntity account, String id);
+	
+	public Mono<AccountEntity> getAccountByCardId(String cardId);
 	
 }

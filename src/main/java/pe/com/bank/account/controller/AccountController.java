@@ -40,7 +40,7 @@ public class AccountController {
 	}
 	
 	 @GetMapping("/{id}")
-	    public Mono<ResponseEntity<AccountEntity>> accountById(@PathVariable String id) {
+	    public Mono<ResponseEntity<AccountEntity>> getAccountById(@PathVariable String id) {
 	        return accountService.findById(id).map(p -> ResponseEntity.ok()
 	                .contentType(MediaType.APPLICATION_JSON)
 	                .body(p));
@@ -113,6 +113,12 @@ public class AccountController {
         return accountService.getByCustomerId(id);
 
     }
+    
+    @GetMapping("/customerId/{customerId}/productId/{productId}")
+    public Flux<AccountEntity> getByCustomerIdAndProductId(@PathVariable String customerId,@PathVariable String productId) {
+        return accountService.getByCustomerIdAndProductId(customerId,productId);
+
+    }
 
     @PutMapping("/update/{id}")
     public Mono<AccountEntity> updateAccount(@RequestBody AccountEntity account, @PathVariable String id) {
@@ -142,6 +148,11 @@ public class AccountController {
     @GetMapping("/count")
     Mono<Long> retornaCount(@RequestParam(name = "accountId") String accountId, @RequestParam String typ) {
         return transactionRestClient.contTransactionByType(typ, accountId);
+    }
+    
+    @GetMapping("/cardId/{cardId}")
+    Mono<AccountEntity> getAccountByCardId(@PathVariable String cardId) {
+        return accountService.getAccountByCardId(cardId);
     }
 
 }

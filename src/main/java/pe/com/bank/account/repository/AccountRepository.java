@@ -20,6 +20,7 @@ public interface AccountRepository extends ReactiveMongoRepository<AccountEntity
    Flux<AccountEntity> findByProductId(String productId);
   	
    Mono<AccountEntity> findAccountsByAccountNumber(String accountNumber);
+   
+   Mono<AccountEntity> findByCardId (String cardId);
 
-  
 }
