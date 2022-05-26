@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import lombok.AllArgsConstructor;
 import pe.com.bank.account.dto.OperationCard;
+import pe.com.bank.account.dto.RptAccountCard;
 import pe.com.bank.account.entity.AccountEntity;
 import org.springframework.web.bind.annotation.*;
 import pe.com.bank.account.dto.OperationCard;
@@ -22,7 +23,6 @@ import pe.com.bank.account.client.TransactionRestClient;
 import pe.com.bank.account.dto.AccountCardDTO;
 import pe.com.bank.account.dto.AccountTransactionDTO;
 import pe.com.bank.account.dto.TransactionDTO;
-import pe.com.bank.account.dto.RptAccountCard;
 import pe.com.bank.account.entity.MovementEntity;
 import pe.com.bank.account.service.AccountService;
 import reactor.core.publisher.Flux;
@@ -43,7 +43,7 @@ public class AccountController {
 	}
 	
 	 @GetMapping("/{id}")
-	    public Mono<ResponseEntity<AccountEntity>> getAccountById(@PathVariable String id) {
+	    public Mono<ResponseEntity<AccountEntity>> accountById(@PathVariable String id) {
 	        return accountService.findById(id).map(p -> ResponseEntity.ok()
 	                .contentType(MediaType.APPLICATION_JSON)
 	                .body(p));
@@ -120,12 +120,6 @@ public class AccountController {
         return accountService.getByCustomerId(id);
 
     }
-    
-    @GetMapping("/customerId/{customerId}/productId/{productId}")
-    public Flux<AccountEntity> getByCustomerIdAndProductId(@PathVariable String customerId,@PathVariable String productId) {
-        return accountService.getByCustomerIdAndProductId(customerId,productId);
-
-    }
 
     @PutMapping("/update/{id}")
     public Mono<AccountEntity> updateAccount(@RequestBody AccountEntity account, @PathVariable String id) {
@@ -161,7 +155,6 @@ public class AccountController {
     public Mono<AccountEntity> createAccountAndDebitCard(@RequestBody AccountCardDTO accountCard){
     	return accountService.createAccountCard(accountCard);
     }
-    
 
     @GetMapping("/getAccountCard")
     Flux<AccountEntity> getAccountCard(@RequestParam String cardId){
@@ -174,13 +167,15 @@ public class AccountController {
 
     }
 
-    @GetMapping("/cardAssociation")
+    @PostMapping("/cardAssociation")
     Mono<AccountEntity> getCardAssociation(@RequestBody OperationCard operationCard){
         return accountService.operationCardAssociation(operationCard);
     }
-
-    @GetMapping("/amountcptd")
+    
+    @PostMapping("/amountcptd")
     Mono<AccountEntity> getSaldoCPByCardId(@RequestBody RptAccountCard rptAccCard){
         return accountService.getSaldoCuentaPrincipalByCardId(rptAccCard);
+
     }
+    
 }
