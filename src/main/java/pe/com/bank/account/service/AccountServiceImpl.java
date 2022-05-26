@@ -2,6 +2,7 @@ package pe.com.bank.account.service;
 
 import java.util.Comparator;
 import java.util.Date;
+import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 import lombok.AllArgsConstructor;
@@ -248,6 +249,7 @@ public class AccountServiceImpl implements AccountService {
     public Mono<AccountEntity> operationCardAssociation(OperationCard operationCard) {
         return accountRepository.findByCardId(operationCard.getCardId())
                 .filter(account -> account.getAmount() > operationCard.getAmount())
+                .filter(account-> !Objects.equals(account.getCardLabel(), "CP"))
                 .sort(Comparator.comparing(AccountEntity::getCardAssociation))
                 .take(1).next();
     }
