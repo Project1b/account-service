@@ -15,6 +15,7 @@ import pe.com.bank.account.dto.CurrentAccountValidateResponse;
 import pe.com.bank.account.dto.OperationCard;
 import pe.com.bank.account.dto.AccountCardDTO;
 import pe.com.bank.account.dto.TransactionDTO;
+import pe.com.bank.account.dto.RptAccountCard;
 import pe.com.bank.account.entity.AccountEntity;
 import pe.com.bank.account.entity.DebitCardEntity;
 import pe.com.bank.account.entity.MovementEntity;
