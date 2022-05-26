@@ -46,6 +46,6 @@ public class CreditRestClient {
 	                .bodyToFlux(TransactionEntity.class)
 	                .log();
 
-	  }	  
+	  }
 
 }

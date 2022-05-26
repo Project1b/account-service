@@ -27,4 +27,5 @@ public class AccountEntity {
 	private String cardId;
 	private String cardLabel;
 	private Date cardAssociation;
+
 }
