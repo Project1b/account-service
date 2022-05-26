@@ -18,6 +18,5 @@ public class AccountTransactionDTO {
 	private double amount;
 	private Date dateOpen;
 	private String amounttype;
-	
 	private List<Transaction> transactionList;
 }

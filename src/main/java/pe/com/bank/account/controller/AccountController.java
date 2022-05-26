@@ -17,6 +17,7 @@ import org.springframework.http.MediaType;
 import lombok.AllArgsConstructor;
 import pe.com.bank.account.entity.AccountEntity;
 import org.springframework.web.bind.annotation.*;
+import pe.com.bank.account.dto.OperationCard;
 
 import pe.com.bank.account.client.CardRestClient;
 import pe.com.bank.account.client.TransactionRestClient;
@@ -153,4 +154,19 @@ public class AccountController {
     	return accountService.createAccountCard(accountCard);
     }
 
+    @GetMapping("/getAccountCard")
+    Flux<AccountEntity> getAccountCard(@RequestParam String cardId){
+        return accountService.findAllByCardId(cardId);
+    }
+
+    @PostMapping("/operationCard")
+    Mono<TransactionDTO> createOperationCard(@RequestBody OperationCard operationCard){
+        return accountService.operationCard(operationCard);
+
+    }
+
+    @GetMapping("/cardAssociation")
+    Mono<AccountEntity> getCardAssociation(@RequestBody OperationCard operationCard){
+        return accountService.operationCardAssociation(operationCard);
+    }
 }

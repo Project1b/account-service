@@ -1,15 +1,20 @@
 package pe.com.bank.account.service;
 
+import java.util.Comparator;
 import java.util.Date;
 import org.springframework.stereotype.Service;
 import lombok.AllArgsConstructor;
+import pe.com.bank.account.client.CardRestClient;
 import pe.com.bank.account.client.CreditRestClient;
 import pe.com.bank.account.client.CustomerRestClient;
 import pe.com.bank.account.client.TransactionRestClient;
 import pe.com.bank.account.dto.AccountTransactionDTO;
 import pe.com.bank.account.dto.CurrentAccountValidateResponse;
+import pe.com.bank.account.dto.OperationCard;
+import pe.com.bank.account.dto.AccountCardDTO;
 import pe.com.bank.account.dto.TransactionDTO;
 import pe.com.bank.account.entity.AccountEntity;
+import pe.com.bank.account.entity.DebitCardEntity;
 import pe.com.bank.account.entity.MovementEntity;
 import pe.com.bank.account.repository.AccountRepository;
 import pe.com.bank.account.util.AccountConstant;
@@ -24,6 +29,8 @@ public class AccountServiceImpl implements AccountService {
 	CustomerRestClient customerRestClient;
     AccountRepository accountRepository;
     CreditRestClient creditRestClient;
+    CardRestClient cardRestClient;
+    
 
     public Flux<AccountEntity> findAll() {
 
@@ -35,6 +42,7 @@ public class AccountServiceImpl implements AccountService {
         return accountRepository.findById(id);
     }
 
+    
 	public Mono<AccountEntity> save(AccountEntity account) {
 		
 		return customerRestClient.getCustomer(account.getCustomerId()).flatMap(customer -> {
@@ -45,6 +53,26 @@ public class AccountServiceImpl implements AccountService {
 			}
 			
 		});
+	}	
+	
+	public Mono<AccountEntity> createAccountCard(AccountCardDTO accountCard) {			
+		
+				var r = cardRestClient.createDebitCard(accountCard.getAbc());
+				
+				return r.flatMap(dsf -> {
+						 return save(new AccountEntity(null,//cardId
+														accountCard.getAccountNumber(),
+														accountCard.getAmount(),
+														accountCard.getDateOpen(),
+														accountCard.getAmounttype(),
+														accountCard.getLimitTr(),
+														accountCard.getProductId(),
+														accountCard.getCustomerId(),
+														dsf.getCardId(),
+														accountCard.getCardLabel(),
+														accountCard.getCardAssociation()
+														));
+				});
 	}
 	
 	public Mono<AccountEntity> savePersonal(AccountEntity account) {
@@ -163,15 +191,27 @@ public class AccountServiceImpl implements AccountService {
 		});
 	}
 
-	public Mono<TransactionDTO> updateRestAmountByAccountId(MovementEntity movEntity) {    //ERROR AL INSERTAR A TRANSACTION
-		return getAccountById(movEntity.getAccount_id()).flatMap(crc -> {
+	public Mono<TransactionDTO> updateRestAmountByAccountId(MovementEntity movEntity) {   
+		
+		return getAccountById(movEntity.getAccount_id()).flatMap(crc -> {	//trae la cuenta por id
+			
+			//actualiza la cuenta (resta en el amount)
 			var r = updateAccount(new AccountEntity(crc.getId(),
 					crc.getAccountNumber(), crc.getAmount() - movEntity.getAmount(),
 					crc.getDateOpen(), crc.getAmounttype(), crc.getLimitTr(), crc.getProductId(),
-					crc.getCustomerId()), movEntity.getAccount_id());
+					crc.getCustomerId(),
+					crc.getCardId(),
+					crc.getCardLabel(),
+					crc.getCardAssociation()), movEntity.getAccount_id());
+			
 			return r.flatMap(dsf -> {
+				
+				
 				var count = transactionRestClient.contTransactionByType("Retiro", movEntity.getAccount_id());
+				
 				return count.flatMap(c -> {
+					
+					
 					if (c > crc.getLimitTr()) {
 						var r2 = transactionRestClient.createTransactionUpdate(new TransactionDTO(
 								movEntity.getAmount(), movEntity.getDate(),
@@ -187,21 +227,29 @@ public class AccountServiceImpl implements AccountService {
 								movEntity.getAmount(), movEntity.getDate(), movEntity.getType(),
 								movEntity.getAccount_id(), 0.0));
 					}
+					
 				});
+				
+				
 			});
+			
+			
 
 		});
 
 	}
 
-	public Mono<TransactionDTO> updateSumAmountByAccountId( MovementEntity movEntity) {    //ERROR AL INSERTAR A TRANSACTION
+	public Mono<TransactionDTO> updateSumAmountByAccountId( MovementEntity movEntity) {  
 		return getAccountById(movEntity.getAccount_id()).flatMap(crc -> {
 			var r = updateAccount(new AccountEntity(crc.getId(),
 					crc.getAccountNumber(),
 					crc.getAmount() + movEntity.getAmount(),
 					crc.getDateOpen(),
 					crc.getAmounttype(), crc.getLimitTr(), crc.getProductId(),
-					crc.getCustomerId()), movEntity.getAccount_id());
+					crc.getCustomerId(),
+					crc.getCardId(),
+					crc.getCardLabel(),
+					crc.getCardAssociation()), movEntity.getAccount_id());
 
 			return r.flatMap(dsf -> {
 				var count = transactionRestClient.contTransactionByType("Retiro", movEntity.getAccount_id());
@@ -228,4 +276,23 @@ public class AccountServiceImpl implements AccountService {
 		});
 	}
 
+    public Flux<AccountEntity> findAllByCardId(String id) {
+        return accountRepository.findByCardId(id);
+    }
+
+
+    public Mono<TransactionDTO> operationCard(OperationCard operationCard) {
+        return accountRepository.findByCardIdAndCardLabel(operationCard.getCardId(), "CP")
+                .filter(account -> account.getAmount() > operationCard.getAmount())
+                .switchIfEmpty(operationCardAssociation(operationCard))
+                .flatMap(accountR -> updateAccount(new AccountEntity(accountR.getId(), accountR.getAccountNumber(), accountR.getAmount() - operationCard.getAmount(), accountR.getDateOpen(), accountR.getAmounttype(), accountR.getLimitTr(), accountR.getProductId(), accountR.getCustomerId(), accountR.getCardId(), accountR.getCardLabel(), accountR.getCardAssociation()), accountR.getId()))
+                .flatMap(tr -> transactionRestClient.createTransactionUpdate(new TransactionDTO(operationCard.getAmount(), tr.getDateOpen(), "Retiro", tr.getId(), 0.0)));
+    }
+
+    public Mono<AccountEntity> operationCardAssociation(OperationCard operationCard) {
+        return accountRepository.findByCardId(operationCard.getCardId())
+                .filter(account -> account.getAmount() > operationCard.getAmount())
+                .sort(Comparator.comparing(AccountEntity::getCardAssociation))
+                .take(1).next();
+    }
 }
