@@ -59,5 +59,7 @@ public interface AccountService {
 	public Mono<TransactionDTO> operationCard(OperationCard operationCard);
 
 	public Mono<AccountEntity> operationCardAssociation(OperationCard operationCard);
+	
+	public Mono<AccountEntity> getSaldoCuentaPrincipalByCardId(RptAccountCard rptAccCard);	
 
 }
