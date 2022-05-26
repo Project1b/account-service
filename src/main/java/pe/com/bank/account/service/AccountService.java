@@ -9,6 +9,7 @@ import pe.com.bank.account.dto.OperationCard;
 import pe.com.bank.account.dto.TransactionDTO;
 import pe.com.bank.account.entity.AccountEntity;
 import pe.com.bank.account.entity.MovementEntity;
+import pe.com.bank.account.dto.RptAccountCard;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
