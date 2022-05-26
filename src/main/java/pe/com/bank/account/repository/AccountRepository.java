@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import pe.com.bank.account.entity.AccountEntity;
+import pe.com.bank.account.entity.DebitCardEntity;
 
 
 @Repository
@@ -21,6 +22,7 @@ public interface AccountRepository extends ReactiveMongoRepository<AccountEntity
   	
    Mono<AccountEntity> findAccountsByAccountNumber(String accountNumber);
    
-   Mono<AccountEntity> findByCardId (String cardId);
+   Flux<AccountEntity> findByCardId (String cardId);
 
+   Mono<AccountEntity> findByCardIdAndCardLabel(String cardId,String cp);
 }

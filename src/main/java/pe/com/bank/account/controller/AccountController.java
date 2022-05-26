@@ -12,12 +12,14 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import lombok.AllArgsConstructor;
+import pe.com.bank.account.dto.OperationCard;
 import pe.com.bank.account.entity.AccountEntity;
 import org.springframework.web.bind.annotation.*;
+import pe.com.bank.account.dto.OperationCard;
+import pe.com.bank.account.client.CardRestClient;
 import pe.com.bank.account.client.TransactionRestClient;
+import pe.com.bank.account.dto.AccountCardDTO;
 import pe.com.bank.account.dto.AccountTransactionDTO;
 import pe.com.bank.account.dto.TransactionDTO;
 import pe.com.bank.account.entity.MovementEntity;
@@ -69,14 +71,18 @@ public class AccountController {
                 .defaultIfEmpty(ResponseEntity.notFound().build());
 
     }
-	
+
+	/*
     @GetMapping
+=======
+	
+  /*  @GetMapping
+>>>>>>> refs/remotes/origin/master
     public Mono<ResponseEntity<Flux<AccountEntity>>> allAccountsList() {
         return Mono.just(ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(accountService.findAll()));
-    }
-
+    }*/
 	
 	@GetMapping("/productId/{id}")
 	public Flux<AccountEntity> getAccountByProductId(@PathVariable String id){
@@ -150,9 +156,29 @@ public class AccountController {
         return transactionRestClient.contTransactionByType(typ, accountId);
     }
     
+    @PostMapping("/createAccountCard")
+    public Mono<AccountEntity> createAccountAndDebitCard(@RequestBody AccountCardDTO accountCard){
+    	return accountService.createAccountCard(accountCard);
+    }
+    
     @GetMapping("/cardId/{cardId}")
     Mono<AccountEntity> getAccountByCardId(@PathVariable String cardId) {
         return accountService.getAccountByCardId(cardId);
     }
 
+    @GetMapping("/getAccountCard")
+    Flux<AccountEntity> getAccountCard(@RequestParam String cardId){
+        return accountService.findAllByCardId(cardId);
+    }
+
+    @PostMapping("/operationCard")
+    Mono<TransactionDTO> createOperationCard(@RequestBody OperationCard operationCard){
+        return accountService.operationCard(operationCard);
+
+    }
+
+    @GetMapping("/cardAssociation")
+    Mono<AccountEntity> getCardAssociation(@RequestBody OperationCard operationCard){
+        return accountService.operationCardAssociation(operationCard);
+    }
 }

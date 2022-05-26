@@ -1,21 +1,19 @@
-package pe.com.bank.account.entity;
+package pe.com.bank.account.dto;
 
 import java.util.Date;
 
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import pe.com.bank.account.entity.DebitCardEntity;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Document(collection="account")
-public class AccountEntity {
+public class AccountCardDTO {
 
-	@Id
 	private String id;
 	private String accountNumber;
 	private Double amount;
@@ -27,5 +25,7 @@ public class AccountEntity {
 	private String cardId;
 	private String cardLabel;
 	private Date cardAssociation;
-
+	private DebitCardEntity abc;
+	
+	
 }
