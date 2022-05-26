@@ -6,14 +6,17 @@ import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 import lombok.AllArgsConstructor;
+import pe.com.bank.account.client.CardRestClient;
 import pe.com.bank.account.client.CreditRestClient;
 import pe.com.bank.account.client.CustomerRestClient;
 import pe.com.bank.account.client.TransactionRestClient;
 import pe.com.bank.account.dto.AccountTransactionDTO;
 import pe.com.bank.account.dto.CurrentAccountValidateResponse;
 import pe.com.bank.account.dto.OperationCard;
+import pe.com.bank.account.dto.AccountCardDTO;
 import pe.com.bank.account.dto.TransactionDTO;
 import pe.com.bank.account.entity.AccountEntity;
+import pe.com.bank.account.entity.DebitCardEntity;
 import pe.com.bank.account.entity.MovementEntity;
 import pe.com.bank.account.repository.AccountRepository;
 import pe.com.bank.account.util.AccountConstant;
@@ -28,6 +31,8 @@ public class AccountServiceImpl implements AccountService {
     CustomerRestClient customerRestClient;
     AccountRepository accountRepository;
     CreditRestClient creditRestClient;
+    CardRestClient cardRestClient;
+
 
     public Flux<AccountEntity> findAll() {
 
@@ -48,6 +53,26 @@ public class AccountServiceImpl implements AccountService {
                 return this.saveEnterprise(account);
             }
 
+        });
+    }
+
+    public Mono<AccountEntity> createAccountCard(AccountCardDTO accountCard) {
+
+        var r = cardRestClient.createDebitCard(accountCard.getAbc());
+
+        return r.flatMap(dsf -> {
+            return save(new AccountEntity(null,//cardId
+                    accountCard.getAccountNumber(),
+                    accountCard.getAmount(),
+                    accountCard.getDateOpen(),
+                    accountCard.getAmounttype(),
+                    accountCard.getLimitTr(),
+                    accountCard.getProductId(),
+                    accountCard.getCustomerId(),
+                    dsf.getCardId(),
+                    accountCard.getCardLabel(),
+                    accountCard.getCardAssociation()
+            ));
         });
     }
 

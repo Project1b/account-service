@@ -1,7 +1,8 @@
 package pe.com.bank.account.service;
 
 import java.util.Date;
-
+import org.springframework.stereotype.Service;
+import pe.com.bank.account.dto.AccountCardDTO;
 import pe.com.bank.account.dto.AccountTransactionDTO;
 import pe.com.bank.account.dto.CurrentAccountValidateResponse;
 import pe.com.bank.account.dto.OperationCard;
@@ -48,6 +49,8 @@ public interface AccountService {
 
 	public Mono<AccountEntity> editAccount(AccountEntity account, String id);
 
+	public Mono<AccountEntity> createAccountCard(AccountCardDTO accountCard);
+	
 	public Flux<AccountEntity> findAllByCardId(String id);
 
 	public Mono<TransactionDTO> operationCard(OperationCard operationCard);
