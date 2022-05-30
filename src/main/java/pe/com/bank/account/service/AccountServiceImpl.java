@@ -3,19 +3,21 @@ package pe.com.bank.account.service;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Objects;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cloud.stream.annotation.EnableBinding;
+import org.springframework.cloud.stream.annotation.StreamListener;
+import org.springframework.context.annotation.Bean;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import lombok.AllArgsConstructor;
 import pe.com.bank.account.client.CardRestClient;
 import pe.com.bank.account.client.CreditRestClient;
 import pe.com.bank.account.client.CustomerRestClient;
 import pe.com.bank.account.client.TransactionRestClient;
-import pe.com.bank.account.dto.AccountTransactionDTO;
-import pe.com.bank.account.dto.CurrentAccountValidateResponse;
-import pe.com.bank.account.dto.OperationCard;
-import pe.com.bank.account.dto.AccountCardDTO;
-import pe.com.bank.account.dto.TransactionDTO;
-import pe.com.bank.account.dto.RptAccountCard;
+import pe.com.bank.account.dto.*;
 import pe.com.bank.account.entity.AccountEntity;
 import pe.com.bank.account.entity.DebitCardEntity;
 import pe.com.bank.account.entity.MovementEntity;
@@ -24,6 +26,7 @@ import pe.com.bank.account.util.AccountConstant;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+@Slf4j
 @AllArgsConstructor
 @Service
 public class AccountServiceImpl implements AccountService {
@@ -35,6 +38,50 @@ public class AccountServiceImpl implements AccountService {
     CardRestClient cardRestClient;
 
 
+    @Bean
+    public Function<Flux<AccountEntity>, Mono<Void>> input() {
+        return flux -> flux.flatMap(a -> accountRepository.save(a)).then();
+    }
+
+
+    @Bean
+    public Function<Flux<WalletOperationAccountDTO>, Mono<Void>> inputWallet() {
+        return flux -> flux.flatMap(this::operationWallet).then();
+    }
+
+
+    public Mono<AccountEntity> operationWallet(WalletOperationAccountDTO ab) {
+
+        if (ab.getDestinationCardId() != null && ab.getSourceCardId() == null) {
+            return accountRepository.findByCardIdAndCardLabel(ab.getDestinationCardId(), "CP")
+                    .flatMap(ac -> {
+                        ac.setAmount(ac.getAmount() + ab.getAmount());
+                        return updateAccount(ac, ac.getId());
+                    });
+        }
+        if (ab.getSourceCardId() != null && ab.getDestinationCardId() == null) {
+            return accountRepository.findByCardIdAndCardLabel(ab.getSourceCardId(), "CP")
+                    .flatMap(ac -> {
+                        ac.setAmount(ac.getAmount() - ab.getAmount());
+                        return updateAccount(ac, ac.getId());
+                    });
+        }
+        if (ab.getSourceCardId() != null && ab.getDestinationCardId() != null) {
+            return accountRepository.findByCardIdAndCardLabel(ab.getSourceCardId(), "CP").
+                    flatMap(ac -> {
+                        ac.setAmount(ac.getAmount() - ab.getAmount());
+                        return updateAccount(ac, ac.getId()).flatMap(cd -> {
+                            return accountRepository.findByCardIdAndCardLabel(ab.getDestinationCardId(), "CP").
+                                    flatMap(acb -> {
+                                        acb.setAmount(acb.getAmount() + ab.getAmount());
+                                        return updateAccount(acb, acb.getId());
+                                    });
+                        });
+                    });
+        }
+        return null;
+    }
+
     public Flux<AccountEntity> findAll() {
 
         return accountRepository.findAll();
@@ -45,18 +92,18 @@ public class AccountServiceImpl implements AccountService {
         return accountRepository.findById(id);
     }
 
-	public Mono<AccountEntity> save(AccountEntity account) {
-		
-		return customerRestClient.getCustomer(account.getCustomerId()).flatMap(customer -> {
-			if (customer.getCustomerType().equals("Personal")) {			
-				return savePersonal(account);
-			}else {
-				return saveEnterprise(account);
-			}
-			
-		});
-	}
-	
+    public Mono<AccountEntity> save(AccountEntity account) {
+
+        return customerRestClient.getCustomer(account.getCustomerId()).flatMap(customer -> {
+            if (customer.getCustomerType().equals("Personal")) {
+                return savePersonal(account);
+            } else {
+                return saveEnterprise(account);
+            }
+
+        });
+    }
+
 
     public Mono<AccountEntity> createAccountCard(AccountCardDTO accountCard) {
 
@@ -77,45 +124,46 @@ public class AccountServiceImpl implements AccountService {
             ));
         });
     }
-	
-	private Mono<AccountEntity> savePersonal(AccountEntity account) {
-		
-			return customerRestClient.getCustomer(account.getCustomerId()).flatMap(customer -> {		
-				return	accountRepository.countByCustomerIdAndProductId(account.getCustomerId(),
-					account.getProductId()).flatMap(count -> {					
-						if(customer.getCategory().equals("VIP")) {							
-						return	creditRestClient.getCountByCustomerIdAndProductId(account.getCustomerId(),
-									AccountConstant.PRODUCT_CREDIT_CARD_ID).flatMap( countCredit ->  {
-										if(countCredit.longValue() < 1 ) { return	Mono.empty();
-										}
-										return count.longValue() > 0 ?  Mono.empty():accountRepository.save(account);
-									});
-						}
-						return count.longValue() > 0 ?  Mono.empty():accountRepository.save(account);
-					});
-			});
-	}
-	
-	private Mono<AccountEntity> saveEnterprise(AccountEntity account) {
-		
-		return customerRestClient.getCustomer(account.getCustomerId()).flatMap(customer -> {		
-			return	accountRepository.countByCustomerIdAndProductId(account.getCustomerId(),
-				account.getProductId()).flatMap(count -> {					
-					if(customer.getCategory().equals("PYME")) {							
-					return	creditRestClient.getCountByCustomerIdAndProductId(account.getCustomerId(),
-								AccountConstant.PRODUCT_CREDIT_CARD_ID).flatMap( countCredit ->  {
-									if(countCredit.longValue() < 1 ) { return	Mono.empty();
-									}
-									return count.longValue() > 0 ?  Mono.empty():accountRepository.save(account);
-								});
-					}
-					return (account.getProductId().equals(AccountConstant.PRODUCT_SAVINGS_ACCOUNT_ID) ||
-							account.getProductId().equals(AccountConstant.PRODUCT_FIXED_TERM_ACCOUNT_ID))?Mono.empty():
-								accountRepository.save(account);
-				});
-		});
-}
-	
+
+    private Mono<AccountEntity> savePersonal(AccountEntity account) {
+
+        return customerRestClient.getCustomer(account.getCustomerId()).flatMap(customer -> {
+            return accountRepository.countByCustomerIdAndProductId(account.getCustomerId(),
+                    account.getProductId()).flatMap(count -> {
+                if (customer.getCategory().equals("VIP")) {
+                    return creditRestClient.getCountByCustomerIdAndProductId(account.getCustomerId(),
+                            AccountConstant.PRODUCT_CREDIT_CARD_ID).flatMap(countCredit -> {
+                        if (countCredit.longValue() < 1) {
+                            return Mono.empty();
+                        }
+                        return count.longValue() > 0 ? Mono.empty() : accountRepository.save(account);
+                    });
+                }
+                return count.longValue() > 0 ? Mono.empty() : accountRepository.save(account);
+            });
+        });
+    }
+
+    private Mono<AccountEntity> saveEnterprise(AccountEntity account) {
+
+        return customerRestClient.getCustomer(account.getCustomerId()).flatMap(customer -> {
+            return accountRepository.countByCustomerIdAndProductId(account.getCustomerId(),
+                    account.getProductId()).flatMap(count -> {
+                if (customer.getCategory().equals("PYME")) {
+                    return creditRestClient.getCountByCustomerIdAndProductId(account.getCustomerId(),
+                            AccountConstant.PRODUCT_CREDIT_CARD_ID).flatMap(countCredit -> {
+                        if (countCredit.longValue() < 1) {
+                            return Mono.empty();
+                        }
+                        return count.longValue() > 0 ? Mono.empty() : accountRepository.save(account);
+                    });
+                }
+                return (account.getProductId().equals(AccountConstant.PRODUCT_SAVINGS_ACCOUNT_ID) ||
+                        account.getProductId().equals(AccountConstant.PRODUCT_FIXED_TERM_ACCOUNT_ID)) ? Mono.empty() :
+                        accountRepository.save(account);
+            });
+        });
+    }
 
 
     public Mono<Void> delete(AccountEntity account) {
@@ -131,16 +179,16 @@ public class AccountServiceImpl implements AccountService {
 
         return accountRepository.findById(id)
                 .flatMap(account -> {
-                	
-                	account.setId(id);
-                	account.setAccountNumber(updateAccount.getAccountNumber() != null ? updateAccount.getAccountNumber() : account.getAccountNumber());
-                	account.setAmount(updateAccount.getAmount() != null ? updateAccount.getAmount() : account.getAmount());
-                	account.setDateOpen(updateAccount.getDateOpen() != null ? updateAccount.getDateOpen() : account.getDateOpen());
-                	account.setAmounttype(updateAccount.getAmounttype() != null ? updateAccount.getAmounttype() : account.getAmounttype());
-                	account.setProductId(updateAccount.getProductId() != null ? updateAccount.getProductId() : account.getProductId());
-                	account.setCustomerId(updateAccount.getCustomerId() != null ? updateAccount.getCustomerId() : account.getCustomerId());
-                	account.setCardId(updateAccount.getCardId() != null ? updateAccount.getCardId() : account.getCardId());
-                	account.setCardLabel(updateAccount.getCardLabel() != null ? updateAccount.getCardLabel() : account.getCardLabel());
+
+                    account.setId(id);
+                    account.setAccountNumber(updateAccount.getAccountNumber() != null ? updateAccount.getAccountNumber() : account.getAccountNumber());
+                    account.setAmount(updateAccount.getAmount() != null ? updateAccount.getAmount() : account.getAmount());
+                    account.setDateOpen(updateAccount.getDateOpen() != null ? updateAccount.getDateOpen() : account.getDateOpen());
+                    account.setAmounttype(updateAccount.getAmounttype() != null ? updateAccount.getAmounttype() : account.getAmounttype());
+                    account.setProductId(updateAccount.getProductId() != null ? updateAccount.getProductId() : account.getProductId());
+                    account.setCustomerId(updateAccount.getCustomerId() != null ? updateAccount.getCustomerId() : account.getCustomerId());
+                    account.setCardId(updateAccount.getCardId() != null ? updateAccount.getCardId() : account.getCardId());
+                    account.setCardLabel(updateAccount.getCardLabel() != null ? updateAccount.getCardLabel() : account.getCardLabel());
 
                     return accountRepository.save(account);
                 });
@@ -153,9 +201,9 @@ public class AccountServiceImpl implements AccountService {
     public Flux<AccountEntity> getAccounts() {
         return accountRepository.findAll();
     }
-    
-    public Flux<AccountEntity> getByCustomerIdAndProductId(String customerId,String productId){
-    	return accountRepository.findByCustomerIdAndProductId(customerId, productId);
+
+    public Flux<AccountEntity> getByCustomerIdAndProductId(String customerId, String productId) {
+        return accountRepository.findByCustomerIdAndProductId(customerId, productId);
     }
 
     public Flux<AccountEntity> getAccountByProductId(String productId) {
@@ -188,7 +236,7 @@ public class AccountServiceImpl implements AccountService {
             return save(c);
         });
     }
-    
+
 
     public Mono<AccountTransactionDTO> retrieveAccountAndTransactionsByAccountId(String accountId) {
         return getAccountById(accountId).flatMap(account -> {
@@ -236,45 +284,44 @@ public class AccountServiceImpl implements AccountService {
     }
 
 
-        public Mono<TransactionDTO> updateSumAmountByAccountId(MovementEntity movEntity) {    //ERROR AL INSERTAR A TRANSACTION
-            return getAccountById(movEntity.getAccount_id()).flatMap(crc -> {
-                var r = updateAccount(new AccountEntity(crc.getId(),
-                        crc.getAccountNumber(),
-                        crc.getAmount() + movEntity.getAmount(),
-                        crc.getDateOpen(),
-                        crc.getAmounttype(), crc.getLimitTr(), crc.getProductId(),
-                        crc.getCustomerId(), crc.getCardId(), crc.getCardLabel(), crc.getCardAssociation()), movEntity.getAccount_id());
+    public Mono<TransactionDTO> updateSumAmountByAccountId(MovementEntity movEntity) {    //ERROR AL INSERTAR A TRANSACTION
+        return getAccountById(movEntity.getAccount_id()).flatMap(crc -> {
+            var r = updateAccount(new AccountEntity(crc.getId(),
+                    crc.getAccountNumber(),
+                    crc.getAmount() + movEntity.getAmount(),
+                    crc.getDateOpen(),
+                    crc.getAmounttype(), crc.getLimitTr(), crc.getProductId(),
+                    crc.getCustomerId(), crc.getCardId(), crc.getCardLabel(), crc.getCardAssociation()), movEntity.getAccount_id());
 
-                return r.flatMap(dsf -> {
-                    var count = transactionRestClient.contTransactionByType("Retiro", movEntity.getAccount_id());
-                    return count.flatMap(c -> {
-                        if (c > crc.getLimitTr()) {
-                            var r2 = transactionRestClient.createTransactionUpdate(new TransactionDTO(
-                                    movEntity.getAmount(), movEntity.getDate(),
-                                    movEntity.getType(), movEntity.getAccount_id(), 10.0));
+            return r.flatMap(dsf -> {
+                var count = transactionRestClient.contTransactionByType("Retiro", movEntity.getAccount_id());
+                return count.flatMap(c -> {
+                    if (c > crc.getLimitTr()) {
+                        var r2 = transactionRestClient.createTransactionUpdate(new TransactionDTO(
+                                movEntity.getAmount(), movEntity.getDate(),
+                                movEntity.getType(), movEntity.getAccount_id(), 10.0));
 
-                            return r2.map(sd -> new TransactionDTO(
-                                    movEntity.getAmount(), movEntity.getDate(),
-                                    movEntity.getType(), movEntity.getAccount_id(), 10.0));
-                        } else {
-                            var r2 = transactionRestClient.createTransactionUpdate(new TransactionDTO(
-                                    movEntity.getAmount(), movEntity.getDate(), movEntity.getType(),
-                                    movEntity.getAccount_id(), 0.0));
+                        return r2.map(sd -> new TransactionDTO(
+                                movEntity.getAmount(), movEntity.getDate(),
+                                movEntity.getType(), movEntity.getAccount_id(), 10.0));
+                    } else {
+                        var r2 = transactionRestClient.createTransactionUpdate(new TransactionDTO(
+                                movEntity.getAmount(), movEntity.getDate(), movEntity.getType(),
+                                movEntity.getAccount_id(), 0.0));
 
-                            return r2.map(sd -> new TransactionDTO(
-                                    movEntity.getAmount(), movEntity.getDate(),
-                                    movEntity.getType(), movEntity.getAccount_id(), 0.0));
-                        }
-                    });
+                        return r2.map(sd -> new TransactionDTO(
+                                movEntity.getAmount(), movEntity.getDate(),
+                                movEntity.getType(), movEntity.getAccount_id(), 0.0));
+                    }
                 });
             });
-        }
-	
+        });
+    }
 
-	
-	 public Flux<AccountEntity> findAllByCardId(String id) {
-	        return accountRepository.findByCardId(id);
-	    }
+
+    public Flux<AccountEntity> findAllByCardId(String id) {
+        return accountRepository.findByCardId(id);
+    }
 
 
     public Mono<TransactionDTO> operationCard(OperationCard operationCard) {
@@ -288,14 +335,14 @@ public class AccountServiceImpl implements AccountService {
     public Mono<AccountEntity> operationCardAssociation(OperationCard operationCard) {
         return accountRepository.findByCardId(operationCard.getCardId())
                 .filter(account -> account.getAmount() > operationCard.getAmount())
-                .filter(account-> !Objects.equals(account.getCardLabel(), "CP"))
+                .filter(account -> !Objects.equals(account.getCardLabel(), "CP"))
                 .sort(Comparator.comparing(AccountEntity::getCardAssociation))
                 .take(1).next();
     }
 
-	public Mono<AccountEntity> getSaldoCuentaPrincipalByCardId(RptAccountCard prtAccCard) {
-		
-		return accountRepository.findAccountEntitiesByCardIdAndCardLabel(prtAccCard.getCardId(), prtAccCard.getCardLabel());
-	}
+    public Mono<AccountEntity> getSaldoCuentaPrincipalByCardId(RptAccountCard prtAccCard) {
+
+        return accountRepository.findAccountEntitiesByCardIdAndCardLabel(prtAccCard.getCardId(), prtAccCard.getCardLabel());
+    }
 
 }

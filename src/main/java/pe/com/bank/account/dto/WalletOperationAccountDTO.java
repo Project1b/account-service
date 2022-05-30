@@ -7,8 +7,10 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class RptAccountCard {
+public class WalletOperationAccountDTO {
 
-	    private String cardId;
-	    private String cardLabel;
+    private String sourceCardId;
+    private String destinationCardId;
+    private Double amount;
+
 }

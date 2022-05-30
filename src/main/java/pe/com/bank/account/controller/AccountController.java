@@ -174,12 +174,12 @@ public class AccountController {
 
     }
 
-    @GetMapping("/cardAssociation")
+    @PostMapping("/cardAssociation")
     Mono<AccountEntity> getCardAssociation(@RequestBody OperationCard operationCard){
         return accountService.operationCardAssociation(operationCard);
     }
 
-    @GetMapping("/amountcptd")
+    @PostMapping("/amountcptd")
     Mono<AccountEntity> getSaldoCPByCardId(@RequestBody RptAccountCard rptAccCard){
         return accountService.getSaldoCuentaPrincipalByCardId(rptAccCard);
     }
