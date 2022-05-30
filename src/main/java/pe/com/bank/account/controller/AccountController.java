@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import lombok.AllArgsConstructor;
 import pe.com.bank.account.dto.OperationCard;
+import pe.com.bank.account.dto.RptAccountCard;
 import pe.com.bank.account.entity.AccountEntity;
 import org.springframework.web.bind.annotation.*;
 import pe.com.bank.account.dto.OperationCard;
@@ -178,7 +179,7 @@ public class AccountController {
     Mono<AccountEntity> getCardAssociation(@RequestBody OperationCard operationCard){
         return accountService.operationCardAssociation(operationCard);
     }
-
+    
     @PostMapping("/amountcptd")
     Mono<AccountEntity> getSaldoCPByCardId(@RequestBody RptAccountCard rptAccCard){
         return accountService.getSaldoCuentaPrincipalByCardId(rptAccCard);
