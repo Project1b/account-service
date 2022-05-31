@@ -25,7 +25,7 @@ public class AccountCardDTO {
 	private String cardId;
 	private String cardLabel;
 	private Date cardAssociation;
-	private DebitCardEntity abc;
+	private DebitCardEntity debitCardEntity;
 	
 	
 }

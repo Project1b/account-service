@@ -21,7 +21,7 @@ public class AccountEntity {
 	private Double amount;
 	private Date dateOpen;
 	private String amounttype;	
-	private int limitTr;
+	private Integer limitTr;
 	private String productId;
 	private String customerId;
 	private String cardId;

@@ -7,10 +7,9 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cloud.stream.annotation.EnableBinding;
-import org.springframework.cloud.stream.annotation.StreamListener;
+
+import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.context.annotation.Bean;
-import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import lombok.AllArgsConstructor;
 import pe.com.bank.account.client.CardRestClient;
@@ -19,7 +18,6 @@ import pe.com.bank.account.client.CustomerRestClient;
 import pe.com.bank.account.client.TransactionRestClient;
 import pe.com.bank.account.dto.*;
 import pe.com.bank.account.entity.AccountEntity;
-import pe.com.bank.account.entity.DebitCardEntity;
 import pe.com.bank.account.entity.MovementEntity;
 import pe.com.bank.account.repository.AccountRepository;
 import pe.com.bank.account.util.AccountConstant;
@@ -36,6 +34,7 @@ public class AccountServiceImpl implements AccountService {
     AccountRepository accountRepository;
     CreditRestClient creditRestClient;
     CardRestClient cardRestClient;
+    StreamBridge streamBridge;
 
 
     @Bean
@@ -107,7 +106,7 @@ public class AccountServiceImpl implements AccountService {
 
     public Mono<AccountEntity> createAccountCard(AccountCardDTO accountCard) {
 
-        var r = cardRestClient.createDebitCard(accountCard.getAbc());
+        var r = cardRestClient.createDebitCard(accountCard.getDebitCardEntity());
 
         return r.flatMap(dsf -> {
             return save(new AccountEntity(null,//cardId
@@ -179,17 +178,35 @@ public class AccountServiceImpl implements AccountService {
 
         return accountRepository.findById(id)
                 .flatMap(account -> {
-
+                	
                     account.setId(id);
                     account.setAccountNumber(updateAccount.getAccountNumber() != null ? updateAccount.getAccountNumber() : account.getAccountNumber());
                     account.setAmount(updateAccount.getAmount() != null ? updateAccount.getAmount() : account.getAmount());
                     account.setDateOpen(updateAccount.getDateOpen() != null ? updateAccount.getDateOpen() : account.getDateOpen());
                     account.setAmounttype(updateAccount.getAmounttype() != null ? updateAccount.getAmounttype() : account.getAmounttype());
+                    account.setLimitTr(updateAccount.getLimitTr() != null ? updateAccount.getLimitTr():account.getLimitTr());
                     account.setProductId(updateAccount.getProductId() != null ? updateAccount.getProductId() : account.getProductId());
                     account.setCustomerId(updateAccount.getCustomerId() != null ? updateAccount.getCustomerId() : account.getCustomerId());
                     account.setCardId(updateAccount.getCardId() != null ? updateAccount.getCardId() : account.getCardId());
                     account.setCardLabel(updateAccount.getCardLabel() != null ? updateAccount.getCardLabel() : account.getCardLabel());
-
+                    return accountRepository.save(account);
+                });
+    }
+    
+    
+    public Mono<AccountEntity> updateAccountByDebitCard(AccountEntity updateAccount, String debitCardId) {
+        return accountRepository.findByCardIdAndCardLabel(debitCardId,"CP")
+                .flatMap(account -> {
+                    account.setId(account.getId());
+                    account.setAccountNumber(updateAccount.getAccountNumber() != null ? updateAccount.getAccountNumber() : account.getAccountNumber());
+                    account.setAmount(updateAccount.getAmount() != null ? updateAccount.getAmount() : account.getAmount());
+                    account.setDateOpen(updateAccount.getDateOpen() != null ? updateAccount.getDateOpen() : account.getDateOpen());
+                    account.setAmounttype(updateAccount.getAmounttype() != null ? updateAccount.getAmounttype() : account.getAmounttype());
+                    account.setLimitTr(updateAccount.getLimitTr() != null ? updateAccount.getLimitTr() : account.getLimitTr());
+                    account.setProductId(updateAccount.getProductId() != null ? updateAccount.getProductId() : account.getProductId());
+                    account.setCustomerId(updateAccount.getCustomerId() != null ? updateAccount.getCustomerId() : account.getCustomerId());
+                    account.setCardId(updateAccount.getCardId() != null ? updateAccount.getCardId() : account.getCardId());
+                    account.setCardLabel(updateAccount.getCardLabel() != null ? updateAccount.getCardLabel() : account.getCardLabel());
                     return accountRepository.save(account);
                 });
     }
@@ -328,7 +345,9 @@ public class AccountServiceImpl implements AccountService {
         return accountRepository.findByCardIdAndCardLabel(operationCard.getCardId(), "CP")
                 .filter(account -> account.getAmount() > operationCard.getAmount())
                 .switchIfEmpty(operationCardAssociation(operationCard))
-                .flatMap(accountR -> updateAccount(new AccountEntity(accountR.getId(), accountR.getAccountNumber(), accountR.getAmount() - operationCard.getAmount(), accountR.getDateOpen(), accountR.getAmounttype(), accountR.getLimitTr(), accountR.getProductId(), accountR.getCustomerId(), accountR.getCardId(), accountR.getCardLabel(), accountR.getCardAssociation()), accountR.getId()))
+                .flatMap(accountR -> updateAccount(new AccountEntity(accountR.getId(), accountR.getAccountNumber(), accountR.getAmount() - operationCard.getAmount(),
+                		accountR.getDateOpen(), accountR.getAmounttype(), accountR.getLimitTr(), accountR.getProductId(), accountR.getCustomerId(), accountR.getCardId(),
+                		accountR.getCardLabel(), accountR.getCardAssociation()), accountR.getId()))
                 .flatMap(tr -> transactionRestClient.createTransactionUpdate(new TransactionDTO(operationCard.getAmount(), tr.getDateOpen(), "Retiro", tr.getId(), 0.0)));
     }
 
@@ -344,5 +363,24 @@ public class AccountServiceImpl implements AccountService {
 
         return accountRepository.findAccountEntitiesByCardIdAndCardLabel(prtAccCard.getCardId(), prtAccCard.getCardLabel());
     }
-
+    
+    @Bean
+    public Consumer<WalletDebitCardDTO> updateAccountDebitCard() {
+    	
+    	return walletDebitCardDTO -> {
+    		accountRepository.findByCardIdAndCardLabel(walletDebitCardDTO.getDebitCardId(),"CP").flatMap( acount -> {
+    			return this.updateAccountByDebitCard(new AccountEntity(null,null,acount.getAmount()+walletDebitCardDTO.getAmount(),
+    	 				null,null,null,null,null,null,null,null),walletDebitCardDTO.getDebitCardId()).flatMap( accountUpdated -> {
+    						sendCurrentAmount(new WalletDebitCardDTO(walletDebitCardDTO.getDebitCardId(),acount.getAmount()+walletDebitCardDTO.getAmount())); 						
+    						return Mono.empty();
+    					});        		   			
+    		}).subscribe();    			           
+	    };
+    }
+  
+    
+    private void sendCurrentAmount(WalletDebitCardDTO walletDebitCardDTO) {
+		 streamBridge.send("account-currentAmount-out-0",walletDebitCardDTO);
+	}
+    
 }

@@ -6,13 +6,11 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-@Document(collection="transaction")
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
 public class Transaction {
 
-	@Id
 	private String transactionId;
 	private double amount;
 	private String date;
